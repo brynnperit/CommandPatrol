@@ -4,55 +4,56 @@ using System.Collections;
 public class HallwayPathController : MonoBehaviour {
 
 	public Transform pathNode;
+	public float pathBoxScale;
 
 	// Use this for initialization
 	void Start () {
 		if (gameObject.CompareTag("Hallway")) 
 		{
 			for (int nodeNum = -1; nodeNum < 2; nodeNum++) {
-				Transform newPathNode = Instantiate (pathNode, transform.position + new Vector3 (0, 0, (nodeNum / 2.0f) * transform.localScale.z), Quaternion.identity) as Transform;
-				newPathNode.parent = transform;
+				createNewPathNode(0,0,(nodeNum / 2.0f) * transform.localScale.z, pathBoxScale);
 			}
 		} 
 		else if (gameObject.CompareTag("HallwayCorner")) 
 		{
 			for (int nodeNum = -1; nodeNum < 1; nodeNum++) {
-				Transform newPathNode = Instantiate (pathNode, transform.position + new Vector3 (0, 0, (nodeNum / 2.0f) * transform.localScale.z), Quaternion.identity) as Transform;
-				newPathNode.parent = transform;
+				createNewPathNode(0,0,(nodeNum / 2.0f) * transform.localScale.z, pathBoxScale);
 			}
-			Transform newPathNodeMinusX = Instantiate (pathNode, transform.position + new Vector3 (-0.5f * transform.localScale.x, 0, 0), Quaternion.identity) as Transform;
-			newPathNodeMinusX.parent = transform;
+			createNewPathNode(-0.5f * transform.localScale.x,0,0, pathBoxScale);
 		} 
 		else if (gameObject.CompareTag("HallwayT")) 
 		{
 			for (int nodeNum = -1; nodeNum < 1; nodeNum++) {
-				Transform newPathNode = Instantiate (pathNode, transform.position + new Vector3 (0, 0, (nodeNum / 2.0f) * transform.localScale.z), Quaternion.identity) as Transform;
-				newPathNode.parent = transform;
+				createNewPathNode(0,0,(nodeNum / 2.0f) * transform.localScale.z, pathBoxScale);
 			}
-			Transform newPathNodePlusX = Instantiate (pathNode, transform.position + new Vector3 (0.5f * transform.localScale.x, 0, 0), Quaternion.identity) as Transform;
-			newPathNodePlusX.parent = transform;
-			Transform newPathNodeMinusX = Instantiate (pathNode, transform.position + new Vector3 (-0.5f * transform.localScale.x, 0, 0), Quaternion.identity) as Transform;
-			newPathNodeMinusX.parent = transform;
+			createNewPathNode(0.5f * transform.localScale.x,0,0, pathBoxScale);
+
+			createNewPathNode(-0.5f * transform.localScale.x,0,0, pathBoxScale);
 		} 
 		else if (gameObject.CompareTag("HallwayPlus")) 
 		{
 			for (int nodeNum = -1; nodeNum < 2; nodeNum++) {
-				Transform newPathNode = Instantiate (pathNode, transform.position + new Vector3 (0, 0, (nodeNum / 2.0f) * transform.localScale.z), Quaternion.identity) as Transform;
-				newPathNode.parent = transform;
+				createNewPathNode(0,0,(nodeNum / 2.0f) * transform.localScale.z, pathBoxScale);
 			}
-			Transform newPathNodePlusX = Instantiate (pathNode, transform.position + new Vector3 (0.5f * transform.localScale.x, 0, 0), Quaternion.identity) as Transform;
-			newPathNodePlusX.parent = transform;
-			Transform newPathNodeMinusX = Instantiate (pathNode, transform.position + new Vector3 (-0.5f * transform.localScale.x, 0, 0), Quaternion.identity) as Transform;
-			newPathNodeMinusX.parent = transform;
+			createNewPathNode(0.5f * transform.localScale.x,0,0, pathBoxScale);
+			
+			createNewPathNode(-0.5f * transform.localScale.x,0,0, pathBoxScale);
 		}
 		else if (gameObject.CompareTag("HallwayEnd")) 
 		{
 			for (int nodeNum = -1; nodeNum < 1; nodeNum++) {
-				Transform newPathNode = Instantiate (pathNode, transform.position + new Vector3 (0, 0, (nodeNum / 2.0f) * transform.localScale.z), Quaternion.identity) as Transform;
-				newPathNode.parent = transform;
+				createNewPathNode(0,0,(nodeNum / 2.0f) * transform.localScale.z, pathBoxScale);
 			}
 		}
 
+	}
+
+	void createNewPathNode(float x, float y, float z, float boxScale){
+		Transform newPathNode = Instantiate (pathNode, transform.position, Quaternion.identity) as Transform;
+		newPathNode.parent = transform;
+		newPathNode.localScale = new Vector3(boxScale,boxScale,boxScale);
+		newPathNode.localRotation = Quaternion.identity;
+		newPathNode.Translate(new Vector3(x,y,z));
 	}
 	
 	// Update is called once per frame
