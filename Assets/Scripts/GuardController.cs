@@ -18,46 +18,53 @@ public class GuardController : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		SetClosestEnemy ();
 		pathfindingNodes = pathfindingNodeCollection.GetComponentsInChildren<Transform> ();
 		currentPathNode = transformArrayOffset;
+		SetClosestEnemy ();
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		SetClosestEnemy ();
 
-		transform.position = Vector3.MoveTowards(transform.position, pathfindingNodes[currentPathNode].position, guardSpeed * Time.deltaTime);
-		//TODO: Make the guard fire bullets towards the closest enemy and move along a path of waypoints.
-
-		//Camera.current.
+//		if (pathfindingNodes == null || pathfindingNodes.Length == 1) {
+//			pathfindingNodes = pathfindingNodeCollection.GetComponentsInChildren<Transform> ();
+//		} else {
+			SetClosestEnemy ();
+			transform.position = Vector3.MoveTowards (transform.position, pathfindingNodes [currentPathNode].position, guardSpeed * Time.deltaTime);
+			//TODO: Make the guard fire bullets towards the closest enemy and move along a path of waypoints.
+//		}
 
 	}
 
 	void SetClosestEnemy(){
 		Transform[] enemies = enemyCollection.GetComponentsInChildren<Transform> ();
-		closestEnemy = enemies[transformArrayOffset];
-		float closestEnemyDistance = Vector3.Distance(transform.position, enemies[transformArrayOffset].position);
+		if (enemies.Length > transformArrayOffset) {
+			closestEnemy = enemies [transformArrayOffset];
+			float closestEnemyDistance = Vector3.Distance (transform.position, enemies [transformArrayOffset].position);
 		
-		for (int currentEnemy = transformArrayOffset + 1; currentEnemy < enemies.Length; currentEnemy++) {
-			float currentEnemyDistance = Vector3.Distance(transform.position, enemies[currentEnemy].position);
-			if (currentEnemyDistance < closestEnemyDistance){
-				closestEnemyDistance = currentEnemyDistance;
-				closestEnemy = enemies[currentEnemy];
+			for (int currentEnemy = transformArrayOffset + 1; currentEnemy < enemies.Length; currentEnemy++) {
+				float currentEnemyDistance = Vector3.Distance (transform.position, enemies [currentEnemy].position);
+				if (currentEnemyDistance < closestEnemyDistance) {
+					closestEnemyDistance = currentEnemyDistance;
+					closestEnemy = enemies [currentEnemy];
+				}
 			}
 		}
 	}
 
 	void FixedUpdate () {
+
 		fireTimer -= Time.deltaTime;
 		while (fireTimer <= 0) {
-			Rigidbody newBullet = Instantiate (bullet, transform.position, Quaternion.identity) as Rigidbody;
-			Transform newBulletTransform = newBullet.GetComponent<Transform>();
-			newBulletTransform.LookAt(closestEnemy.position);
-			newBulletTransform.Rotate(new Vector3(90, 0, 0));
-			newBulletTransform.position += newBulletTransform.up * 1;
+			if (closestEnemy != null){
+				Rigidbody newBullet = Instantiate (bullet, transform.position, Quaternion.identity) as Rigidbody;
+				Transform newBulletTransform = newBullet.GetComponent<Transform>();
+				newBulletTransform.LookAt(closestEnemy.position);
+				newBulletTransform.Rotate(new Vector3(90, 0, 0));
+				newBulletTransform.position += newBulletTransform.up * 1;
 
-			newBullet.AddForce (newBulletTransform.up * bulletSpeed, ForceMode.Impulse);
+				newBullet.AddForce (newBulletTransform.up * bulletSpeed, ForceMode.Impulse);
+			}
 			fireTimer += 1.0f/fireRate;
 		}
 	}

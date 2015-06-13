@@ -13,16 +13,19 @@ public class HallwayGenerator : MonoBehaviour {
 	public Transform hallwayEnd;
 	public enum Direction{ north=0, east=1, south=2, west=3};
 	public enum HallwayTypes{ hall=0, corner=1, T=2,plus=3,end=4 };
-	private struct GridPosition {
+	private class GridPosition {
+		public GridPosition(int x, int z){
+			xPosition = x;
+			zPosition = z;
+		}
 		public int xPosition;
 		public int zPosition;
 	}
+	public float hallwayGridUnitSize;
+	public float yOffset;
 
 	// Use this for initialization
 	void Start () {
-		if (xDimension * zDimension < numberSteps) {
-			numberSteps = xDimension * zDimension;
-		}
 		//X coord, Z coord, (type of hallway, direction of hallway)
 		int[,,] hallwayGrid = new int[xDimension,zDimension,2];
 		for (int xPos = 0; xPos < xDimension; xPos++) {
@@ -30,13 +33,11 @@ public class HallwayGenerator : MonoBehaviour {
 				hallwayGrid[xPos,zPos,0] = -1;
 			}
 		}
-		GridPosition currentPosition = new GridPosition ();
-		GridPosition newPosition = new GridPosition ();
-		currentPosition.xPosition = xDimension / 2;
-		currentPosition.zPosition = zDimension / 2;
+//		GridPosition currentPosition = new GridPosition (xDimension / 2, zDimension / 2);
+		GridPosition currentPosition = new GridPosition (0, 0);
 		Direction currentDirection = getNewDirection (currentPosition);
 		addExitToGridSquare (currentDirection, hallwayGrid, currentPosition);
-		setNewPosition(currentDirection, currentPosition, currentPosition);
+		setNewPosition(currentDirection, currentPosition);
 		Direction newDirection;
 		int stepNumber = 1;
 		while (stepNumber < numberSteps) {
@@ -48,19 +49,61 @@ public class HallwayGenerator : MonoBehaviour {
 			if (stepNumber < numberSteps - 1){
 				addExitToGridSquare(newDirection, hallwayGrid, currentPosition);
 			}
-			setNewPosition(newDirection, newPosition, currentPosition);
+			setNewPosition(newDirection, currentPosition);
 
 			currentDirection = newDirection;
-			currentPosition.xPosition = newPosition.xPosition;
-			currentPosition.zPosition = newPosition.zPosition;
 			stepNumber++;
 		}
 
-		//TODO: Turn our generated level into actual objects by instantiating the given hallway transforms offset by the gridrefs * something and then rotated by direction * 90 degrees
+		for (int xPos = 0; xPos < xDimension; xPos++){
+			for (int zPos = 0; zPos < zDimension; zPos++){
+				HallwayTypes hallType = (HallwayTypes)hallwayGrid[xPos,zPos,0];
+				Direction hallDirection = (Direction)hallwayGrid[xPos,zPos,1];
+				float xCoord = xPos * hallwayGridUnitSize;
+				float yCoord = yOffset;
+				float zCoord = -zPos * hallwayGridUnitSize;
+				Transform newHall;
+
+				switch (hallType){
+				case HallwayTypes.hall:
+					newHall = Instantiate(hallway, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection), 0));
+					newHall.parent = transform;
+					break;
+				case HallwayTypes.corner:
+					newHall = Instantiate(hallwayCorner, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+					newHall.parent = transform;
+					break;
+				case HallwayTypes.plus:
+					newHall = Instantiate(hallwayPlus, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+					//newHall.Rotate(new Vector3(0, -90 * ((int)hallDirection), 0));
+					newHall.parent = transform;
+					break;
+				case HallwayTypes.T:
+					newHall = Instantiate(hallwayT, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+					newHall.parent = transform;
+					break;
+				case HallwayTypes.end:
+					newHall = Instantiate(hallwayEnd, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+					newHall.parent = transform;
+					break;
+				}
+			}
+		}
 	}
 
 	void addExitToGridSquare(Direction dirToAddExit, int[,,] grid, GridPosition gridSquare){
 		bool interceptingExistingHallway;
+		int bla = 0;
+		if (gridSquare.xPosition < 0 || gridSquare.xPosition >= xDimension) {
+			bla++;
+		}
+		if (gridSquare.zPosition < 0 || gridSquare.zPosition >= zDimension){
+			bla++;
+		}
 		if (grid[gridSquare.xPosition,gridSquare.zPosition,0] == -1){
 			interceptingExistingHallway = false;
 		}else{
@@ -95,7 +138,7 @@ public class HallwayGenerator : MonoBehaviour {
 			
 				break;
 			case HallwayTypes.T:
-				if (currentDirection == getOppositeDirection(existingDirection)){
+				if (dirToAddExit == getOppositeDirection(existingDirection)){
 					grid[gridSquare.xPosition,gridSquare.zPosition,0] = (int)HallwayTypes.plus;
 				}
 				break;
@@ -210,15 +253,18 @@ public class HallwayGenerator : MonoBehaviour {
 		else if (currentPosition.xPosition == xDimension - 1) {
 			//East wall
 			newDirection = (Direction)Random.Range (0, 3);
-			if (newDirection != Direction.north){
-				newDirection = newDirection + 1;
+			if (newDirection == Direction.south){
+				newDirection = Direction.west;
+			}
+			if (newDirection == Direction.east){
+				newDirection = Direction.south;
 			}
 		} 
 		else if (currentPosition.zPosition == zDimension - 1) {
 			//South wall
 			newDirection = (Direction)Random.Range (0, 3);
-			if (newDirection != Direction.south){
-				newDirection = newDirection + 1;
+			if (newDirection == Direction.south){
+				newDirection = Direction.west;
 			}
 		} 
 		else if (currentPosition.xPosition == 0) {
@@ -234,23 +280,19 @@ public class HallwayGenerator : MonoBehaviour {
 	}
 
 
-	void setNewPosition(Direction direction, GridPosition toSet, GridPosition toSetFrom){
+	void setNewPosition(Direction direction, GridPosition toSet){
 		switch (direction) {
 			case (Direction.north):
-				toSet.xPosition = toSetFrom.xPosition;
-				toSet.zPosition = toSetFrom.zPosition - 1;
+				toSet.zPosition = toSet.zPosition - 1;
 				break;
 			case (Direction.east):
-				toSet.xPosition = toSetFrom.xPosition + 1;
-				toSet.zPosition = toSetFrom.zPosition;
+				toSet.xPosition = toSet.xPosition + 1;
 				break;
 			case(Direction.south):
-				toSet.xPosition = toSetFrom.xPosition;
-				toSet.zPosition = toSetFrom.zPosition + 1;
+				toSet.zPosition = toSet.zPosition + 1;
 				break;
 			case(Direction.west):
-				toSet.xPosition = toSetFrom.xPosition - 1;
-				toSet.zPosition = toSetFrom.zPosition;
+				toSet.xPosition = toSet.xPosition - 1;
 				break;
 		}
 	}
