@@ -5,6 +5,7 @@ public class PathfindingNodeCollection {
 
 	Transform[] borderNodes;
 	public Transform centerNode{ get; set; }
+	public GridPosition owner{ get; set; }
 
 	public PathfindingNodeCollection(){
 		borderNodes = new Transform[4];

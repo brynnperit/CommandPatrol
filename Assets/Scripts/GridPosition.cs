@@ -11,11 +11,26 @@ public class GridPosition : PriorityQueueNode {
 	public Direction gridDirection{ get; set; }
 	public HallwayType gridType{ get; set; }
 
+	PathfindingNodeCollection ourNodes;
+
 	public GridPosition(int x, int z){
 		xPosition = x;
 		zPosition = z;
 		gridType = HallwayType.none;
 		adjacentPositions = new GridPosition[4];
+	}
+
+	public void setPathNodes(PathfindingNodeCollection nodes){
+		ourNodes = nodes;
+		ourNodes.owner = this;
+	}
+
+	public Transform[] getPathThrough(Direction startingDirection, Direction endingDirection){
+		if (ourNodes != null) {
+			return ourNodes.nodesToFollow(startingDirection, endingDirection);
+		} else {
+			return new Transform[0];
+		}
 	}
 
 	public void setAdjacent(Direction adjDirection, GridPosition toSet){
@@ -222,7 +237,6 @@ public class GridPosition : PriorityQueueNode {
 		}
 		return null;
 	}
-	
 }
 
 public enum Direction{ north=0, east=1, south=2, west=3};

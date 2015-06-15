@@ -18,6 +18,9 @@ public class Map : MonoBehaviour {
 	public float hallwayGridUnitSize;
 	public float yOffset;
 
+	public Transform pathNode;
+	public float pathBoxScale;
+
 	// Use this for initialization
 	void Start () {
 		mapGrid = new GridPosition[xDimension, zDimension];
@@ -51,47 +54,57 @@ public class Map : MonoBehaviour {
 		for (int xPos = 0; xPos < xDimension; xPos++){
 			for (int zPos = 0; zPos < zDimension; zPos++){
 				HallwayType hallType = mapGrid[xPos,zPos].gridType;
-				Direction hallDirection = mapGrid[xPos,zPos].gridDirection;
-				float xCoord = xPos * hallwayGridUnitSize;
-				float yCoord = yOffset;
-				float zCoord = -zPos * hallwayGridUnitSize;
-				Transform newHall;
+				if (hallType != HallwayType.none){
+					Direction hallDirection = mapGrid[xPos,zPos].gridDirection;
+					float xCoord = xPos * hallwayGridUnitSize;
+					float yCoord = yOffset;
+					float zCoord = -zPos * hallwayGridUnitSize;
+					Transform newHall;
+					currentPosition = mapGrid[xPos, zPos];
 
-				mapGrid[xPos,zPos].setAdjacents(mapGrid);
+					currentPosition.setAdjacents(mapGrid);
 
-				switch (hallType){
-				case HallwayType.hall:
-					newHall = Instantiate(hallway, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection), 0));
-					newHall.parent = transform;
-					break;
-				case HallwayType.corner:
-					newHall = Instantiate(hallwayCorner, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-					//These hallways, and the subsequent ones, end up being rotated 180 degrees from the direction we want to face. The +2 fixes that
-					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
-					newHall.parent = transform;
-					break;
-				case HallwayType.plus:
-					newHall = Instantiate(hallwayPlus, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-					//newHall.Rotate(new Vector3(0, -90 * ((int)hallDirection), 0));
-					newHall.parent = transform;
-					break;
-				case HallwayType.T:
-					newHall = Instantiate(hallwayT, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
-					newHall.parent = transform;
-					break;
-				case HallwayType.end:
-					newHall = Instantiate(hallwayEnd, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
-					newHall.parent = transform;
-					break;
+					switch (hallType){
+					case HallwayType.hall:
+						newHall = Instantiate(hallway, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+						newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection), 0));
+						newHall.parent = transform;
+						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
+						break;
+					case HallwayType.corner:
+						newHall = Instantiate(hallwayCorner, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+						//These hallways, and the subsequent ones, end up being rotated 180 degrees from the direction we want to face. The +2 fixes that
+						newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+						newHall.parent = transform;
+						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
+						break;
+					case HallwayType.plus:
+						newHall = Instantiate(hallwayPlus, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+						//newHall.Rotate(new Vector3(0, -90 * ((int)hallDirection), 0));
+						newHall.parent = transform;
+						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
+						break;
+					case HallwayType.T:
+						newHall = Instantiate(hallwayT, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+						newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+						newHall.parent = transform;
+						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
+						break;
+					case HallwayType.end:
+						newHall = Instantiate(hallwayEnd, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+						newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+						newHall.parent = transform;
+						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
+						break;
+					}
 				}
 			}
 		}
 	}
 
-
+	public GridPosition getGridPosition(int xCoord, int zCoord){
+		return mapGrid [xCoord, zCoord];
+	}
 
 	public GridPosition inefficientGetRandomMapPosition(){
 		GridPosition toReturn;
@@ -203,6 +216,59 @@ public class Map : MonoBehaviour {
 		}
 		
 		return newDirection;
+	}
+
+	//TODO: Restructure code so that these path nodes are actually given to the grid position in an organized collection so that agents can traverse them to pass through
+
+	static PathfindingNodeCollection createNodeCollection (Transform gridTransform, GridPosition hallway, float pathBoxScale, Transform pathNode) {
+		PathfindingNodeCollection ourNodes = new PathfindingNodeCollection ();
+		if (hallway.gridType == HallwayType.hall) 
+		{
+			for (int nodeNum = -1; nodeNum < 2; nodeNum++) {
+				ourNodes.addPathNode(createNewPathNode(0,0,(nodeNum / 2.0f) * gridTransform.localScale.z, pathBoxScale, pathNode, gridTransform));
+			}
+		} 
+		else if (hallway.gridType == HallwayType.corner) 
+		{
+			for (int nodeNum = -1; nodeNum < 1; nodeNum++) {
+				ourNodes.addPathNode(createNewPathNode(0,0,(nodeNum / 2.0f) * gridTransform.localScale.z, pathBoxScale, pathNode, gridTransform));
+			}
+			ourNodes.addPathNode(createNewPathNode(-0.5f * gridTransform.localScale.x,0,0, pathBoxScale, pathNode, gridTransform));
+		} 
+		else if (hallway.gridType == HallwayType.T) 
+		{
+			for (int nodeNum = -1; nodeNum < 1; nodeNum++) {
+				ourNodes.addPathNode(createNewPathNode(0,0,(nodeNum / 2.0f) * gridTransform.localScale.z, pathBoxScale, pathNode, gridTransform));
+			}
+			ourNodes.addPathNode(createNewPathNode(0.5f * gridTransform.localScale.x,0,0, pathBoxScale, pathNode, gridTransform));
+			
+			ourNodes.addPathNode(createNewPathNode(-0.5f * gridTransform.localScale.x,0,0, pathBoxScale, pathNode, gridTransform));
+		} 
+		else if (hallway.gridType == HallwayType.plus) 
+		{
+			for (int nodeNum = -1; nodeNum < 2; nodeNum++) {
+				ourNodes.addPathNode(createNewPathNode(0,0,(nodeNum / 2.0f) * gridTransform.localScale.z, pathBoxScale, pathNode, gridTransform));
+			}
+			ourNodes.addPathNode(createNewPathNode(0.5f * gridTransform.localScale.x,0,0, pathBoxScale, pathNode, gridTransform));
+			
+			ourNodes.addPathNode(createNewPathNode(-0.5f * gridTransform.localScale.x,0,0, pathBoxScale, pathNode, gridTransform));
+		}
+		else if (hallway.gridType == HallwayType.end) 
+		{
+			for (int nodeNum = -1; nodeNum < 1; nodeNum++) {
+				ourNodes.addPathNode(createNewPathNode(0,0,(nodeNum / 2.0f) * gridTransform.localScale.z, pathBoxScale, pathNode, gridTransform));
+			}
+		}
+		return ourNodes;
+	}
+	
+	private static Transform createNewPathNode(float x, float y, float z, float boxScale, Transform pathNode, Transform gridTransform){
+		Transform newPathNode = Instantiate (pathNode, gridTransform.position, Quaternion.identity) as Transform;
+		newPathNode.parent = gridTransform;
+		newPathNode.localScale = new Vector3(boxScale,boxScale,boxScale);
+		newPathNode.localRotation = Quaternion.identity;
+		newPathNode.Translate(new Vector3(x,y,z));
+		return newPathNode;
 	}
 
 	// Update is called once per frame
