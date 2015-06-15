@@ -27,6 +27,7 @@ public class Map : MonoBehaviour {
 			}
 		}
 		GridPosition currentPosition = mapGrid[xDimension / 2, zDimension / 2];
+//		GridPosition currentPosition = mapGrid[0,0];
 		Direction currentDirection = getNewDirection(currentPosition.xPosition, currentPosition.zPosition);
 		currentPosition.addExitToGridSquare (currentDirection);
 		currentPosition = GridPosition.getPosition(mapGrid, currentDirection, currentPosition);
@@ -89,6 +90,8 @@ public class Map : MonoBehaviour {
 			}
 		}
 	}
+
+
 
 	public GridPosition inefficientGetRandomMapPosition(){
 		GridPosition toReturn;

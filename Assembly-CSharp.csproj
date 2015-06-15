@@ -52,6 +52,7 @@
      <Compile Include="Assets\Scripts\GuardController.cs" />
      <Compile Include="Assets\Scripts\HallwayPathController.cs" />
      <Compile Include="Assets\Scripts\Map.cs" />
+     <Compile Include="Assets\Scripts\PathfindingNodeCollection.cs" />
      <Compile Include="Assets\Scripts\PriorityQueue\HeapPriorityQueue.cs" />
      <Compile Include="Assets\Scripts\PriorityQueue\IPriorityQueue.cs" />
      <Compile Include="Assets\Scripts\PriorityQueue\PriorityQueueNode.cs" />
