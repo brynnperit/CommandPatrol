@@ -1,11 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 using Priority_Queue;
 
 public class GridPosition : PriorityQueueNode {
 
 	GridPosition[] adjacentPositions;
+	public int xPosition{ get; set; }
+	public int zPosition{ get; set; }
+	
+	public Direction gridDirection{ get; set; }
+	public HallwayType gridType{ get; set; }
 
 	public GridPosition(int x, int z){
 		xPosition = x;
@@ -15,19 +19,169 @@ public class GridPosition : PriorityQueueNode {
 	}
 
 	public void setAdjacent(Direction adjDirection, GridPosition toSet){
-		if (toSet.gridType != HallwayType.none) {
+		if (toSet == null || toSet.gridType == HallwayType.none) {
+			adjacentPositions[(int)adjDirection] = null;
+		} else {
 			adjacentPositions [(int)adjDirection] = toSet;
 		}
 	}
-
+	
 	public void setAdjacents(GridPosition[,] mapGrid){
 		for (int i = 0; i < 4; i++){
-			adjacentPositions[i] = getPosition(mapGrid, (Direction)i, this);
+			setAdjacent((Direction)i, null);
 		}
+
+		Direction[] validDirections;
+		switch (gridType){
+		case HallwayType.hall:
+			validDirections = new Direction[2];
+			validDirections[0] = gridDirection;
+			validDirections[1] = getOppositeDirection(gridDirection);
+			break;
+		case HallwayType.corner:
+			validDirections = new Direction[2];
+			validDirections[0] = gridDirection;
+			validDirections[1] = getCornerOtherDirection(gridDirection);
+			break;
+		case HallwayType.T:
+			validDirections = new Direction[3];
+			validDirections[0] = getLeftDirectionFrom(gridDirection);
+			validDirections[1] = gridDirection;
+			validDirections[2] = getRightDirectionFrom(gridDirection);
+			break;
+		case HallwayType.plus:
+			validDirections = new Direction[4];
+			validDirections[0] = Direction.north;
+			validDirections[1] = Direction.east;
+			validDirections[2] = Direction.south;
+			validDirections[3] = Direction.west;
+			break;
+		case HallwayType.end:
+			validDirections = new Direction[1];
+			validDirections[0] = gridDirection;
+			break;
+		default:
+			validDirections = new Direction[0];
+			break;
+		}
+		for (int i = 0; i < validDirections.Length; i++){
+				setAdjacent(validDirections[i], getPosition(mapGrid, validDirections[i], this));
+		}
+
 	}
 
 	public GridPosition[] getAdjacents(){
 		return adjacentPositions;
+	}
+
+	public void addExitToGridSquare(Direction dirToAddExit){
+		bool interceptingExistingHallway;
+		
+		if (gridType == HallwayType.none){
+			interceptingExistingHallway = false;
+		}else{
+			interceptingExistingHallway = true;
+		}
+		
+		if (interceptingExistingHallway){
+			HallwayType existingType = gridType;
+			Direction existingDirection = gridDirection;
+			switch(existingType){
+			case HallwayType.hall:
+				if (dirToAddExit == existingDirection || dirToAddExit == getOppositeDirection(existingDirection)){
+					//Do nothing, we're just passing through an existing hallways, no changes needed
+				}else {
+					//Make it into a T towards dirToAddExit
+					gridType = HallwayType.T;
+					gridDirection = dirToAddExit;
+				}
+				break;
+			case HallwayType.corner:
+				Direction otherExistingDirection = GridPosition.getCornerOtherDirection(existingDirection);
+				if (dirToAddExit == existingDirection || dirToAddExit == otherExistingDirection){
+					//Do nothing, we're just passing through an existing hallways, no changes needed
+				}else if (dirToAddExit == getOppositeDirection(existingDirection)){
+					//dirToAddExit is gonna be opposite one of the existing directions. Find out which one it is and point the t to the other one
+					gridType =  HallwayType.T;
+					gridDirection = otherExistingDirection;
+				}else{
+					gridType = HallwayType.T;
+					gridDirection = existingDirection;
+				}
+				
+				break;
+			case HallwayType.T:
+				if (dirToAddExit == getOppositeDirection(existingDirection)){
+					gridType = HallwayType.plus;
+				}
+				break;
+			case HallwayType.plus:
+				//We're good, do nothing
+				break;
+			case HallwayType.end:
+				Direction oppositeExisting = getOppositeDirection(existingDirection);
+				if (dirToAddExit == existingDirection){
+					//Going out the way we came in, do nothing
+				}else if (dirToAddExit == oppositeExisting){
+					gridType = HallwayType.hall;
+				}else{
+					gridType = HallwayType.corner;
+					gridDirection = getCornerDirection(dirToAddExit, existingDirection);
+				}
+				break;
+			}
+		}else{
+			gridType = HallwayType.end;
+			gridDirection = dirToAddExit;
+		}
+	}
+	
+	public static Direction getLeftDirectionFrom(Direction toTurn){
+		switch (toTurn) {
+		case Direction.north:
+			return Direction.east;
+		case Direction.east:
+			return Direction.south;
+		case Direction.south:
+			return Direction.west;
+		}
+		return Direction.north;
+	}
+	
+	public static Direction getRightDirectionFrom(Direction toTurn){
+		switch (toTurn) {
+		case Direction.north:
+			return Direction.west;
+		case Direction.east:
+			return Direction.north;
+		case Direction.south:
+			return Direction.east;
+		}
+		return Direction.south;
+	}
+	
+	public static Direction getOppositeDirection(Direction toOppose){
+		switch (toOppose) {
+		case Direction.north:
+			return Direction.south;
+		case Direction.east:
+			return Direction.west;
+		case Direction.south:
+			return Direction.north;
+		}
+		return Direction.east;
+	}
+	
+	public static Direction getCornerDirection (Direction newDirection, Direction oldDirection){
+		if ((newDirection == Direction.north && oldDirection == Direction.east) || (newDirection == Direction.east && oldDirection == Direction.north)) {
+			return Direction.north;
+		} else if ((newDirection == Direction.south && oldDirection == Direction.east) || (newDirection == Direction.east && oldDirection == Direction.south)) {
+			return Direction.east;
+		} else if ((newDirection == Direction.south && oldDirection == Direction.west) || (newDirection == Direction.west && oldDirection == Direction.south)) {
+			return Direction.south;
+		} else {
+			return Direction.west;
+		}
 	}
 
 	public static Direction getCornerOtherDirection(Direction ofCorner){
@@ -42,49 +196,6 @@ public class GridPosition : PriorityQueueNode {
 		//case Direction.west:
 		return Direction.north;
 	}
-
-	//This code is based on A* search algorithms found on http://www.redblobgames.com/pathfinding/a-star/implementation.html#csharp
-	public static GridPosition[] getPathToPosition(GridPosition start, GridPosition end, int mapSize){
-		//Evaluate each adjacent node, adding them to the open set sorted by their cost. Then repeat for the lowest estimated cost node in the open set. 
-		Dictionary<GridPosition, GridPosition> cameFrom = new Dictionary<GridPosition, GridPosition> ();
-		Dictionary<GridPosition, int> costSoFar	= new Dictionary<GridPosition, int>();
-		HeapPriorityQueue<GridPosition> frontier = new HeapPriorityQueue<GridPosition>(mapSize);
-		frontier.Enqueue(start, 0);
-		
-		cameFrom.Add(start, start);
-		costSoFar.Add(start, 0);
-		
-		while (frontier.Count > 0)
-		{
-			var current = frontier.Dequeue();
-			
-			if (current.Equals(end))
-			{
-				break;
-			}
-			
-			foreach (GridPosition next in current.getAdjacents())
-			{
-				int newCost = costSoFar[current] + 1;
-				if (!costSoFar.ContainsKey(next) || newCost < costSoFar[next])
-				{
-					costSoFar.Add(next, newCost);
-					int priority = newCost + Heuristic(next, end);
-					frontier.Enqueue(next, priority);
-					cameFrom.Add(next, current);
-				}
-			}
-		}
-		
-		return new GridPosition[0];
-	}
-
-	//Note: This should be changed if the map moves away from a simple grid to more optimized hallways
-	static public int Heuristic(GridPosition a, GridPosition b)
-	{
-		return Mathf.Abs(a.xPosition - b.xPosition) + Mathf.Abs(a.zPosition - b.zPosition);
-	}
-
 	
 	public static GridPosition getPosition(GridPosition[,] mapGrid, Direction direction, GridPosition toGetFrom){
 		switch (direction) {
@@ -111,12 +222,7 @@ public class GridPosition : PriorityQueueNode {
 		}
 		return null;
 	}
-
-	public int xPosition{ get; set; }
-	public int zPosition{ get; set; }
-
-	public Direction gridDirection{ get; set; }
-	public HallwayType gridType{ get; set; }
+	
 }
 
 public enum Direction{ north=0, east=1, south=2, west=3};

@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using Priority_Queue;
 
 public class Map : MonoBehaviour {
 
@@ -25,19 +27,19 @@ public class Map : MonoBehaviour {
 			}
 		}
 		GridPosition currentPosition = mapGrid[xDimension / 2, zDimension / 2];
-		Direction currentDirection = getNewDirection (currentPosition);
-		addExitToGridSquare (currentDirection, currentPosition);
+		Direction currentDirection = getNewDirection(currentPosition.xPosition, currentPosition.zPosition);
+		currentPosition.addExitToGridSquare (currentDirection);
 		currentPosition = GridPosition.getPosition(mapGrid, currentDirection, currentPosition);
 		Direction newDirection;
 		int stepNumber = 1;
 		while (stepNumber < numberSteps) {
 
-			addExitToGridSquare(getOppositeDirection(currentDirection), currentPosition);
+			currentPosition.addExitToGridSquare(GridPosition.getOppositeDirection(currentDirection));
 
-			newDirection = getNewDirection(currentPosition);
+			newDirection = getNewDirection(currentPosition.xPosition, currentPosition.zPosition);
 
 			if (stepNumber < numberSteps - 1){
-				addExitToGridSquare(newDirection, currentPosition);
+				currentPosition.addExitToGridSquare(newDirection);
 			}
 			currentPosition = GridPosition.getPosition(mapGrid, newDirection, currentPosition);
 
@@ -99,145 +101,79 @@ public class Map : MonoBehaviour {
 		return toReturn;
 	}
 
-	void addExitToGridSquare(Direction dirToAddExit, GridPosition gridSquare){
-		bool interceptingExistingHallway;
 
-		if (gridSquare.gridType == HallwayType.none){
-			interceptingExistingHallway = false;
-		}else{
-			interceptingExistingHallway = true;
-		}
-
-		if (interceptingExistingHallway){
-			HallwayType existingType = gridSquare.gridType;
-			Direction existingDirection = gridSquare.gridDirection;
-			switch(existingType){
-			case HallwayType.hall:
-				if (dirToAddExit == existingDirection || dirToAddExit == getOppositeDirection(existingDirection)){
-					//Do nothing, we're just passing through an existing hallways, no changes needed
-				}else {
-					//Make it into a T towards dirToAddExit
-					gridSquare.gridType = HallwayType.T;
-					gridSquare.gridDirection = dirToAddExit;
-				}
-				break;
-			case HallwayType.corner:
-				Direction otherExistingDirection = GridPosition.getCornerOtherDirection(existingDirection);
-				if (dirToAddExit == existingDirection || dirToAddExit == otherExistingDirection){
-					//Do nothing, we're just passing through an existing hallways, no changes needed
-				}else if (dirToAddExit == getOppositeDirection(existingDirection)){
-				//dirToAddExit is gonna be opposite one of the existing directions. Find out which one it is and point the t to the other one
-					gridSquare.gridType =  HallwayType.T;
-					gridSquare.gridDirection = otherExistingDirection;
-				}else{
-					gridSquare.gridType = HallwayType.T;
-					gridSquare.gridDirection = existingDirection;
-				}
+	//This code is based on A* search algorithms found on http://www.redblobgames.com/pathfinding/a-star/implementation.html#csharp
+	public static GridPosition[] getPathToPosition(GridPosition start, GridPosition end, int mapSize){
+		//Evaluate each adjacent node, adding them to the open set sorted by their cost. Then repeat for the lowest estimated cost node in the open set. 
+		Dictionary<GridPosition, GridPosition> cameFrom = new Dictionary<GridPosition, GridPosition> ();
+		Dictionary<GridPosition, int> costSoFar	= new Dictionary<GridPosition, int>();
+		HeapPriorityQueue<GridPosition> frontier = new HeapPriorityQueue<GridPosition>(mapSize);
+		frontier.Enqueue(start, 0);
+		
+		cameFrom.Add(start, start);
+		costSoFar.Add(start, 0);
+		
+		while (frontier.Count > 0)
+		{
+			var current = frontier.Dequeue();
 			
-				break;
-			case HallwayType.T:
-				if (dirToAddExit == getOppositeDirection(existingDirection)){
-					gridSquare.gridType = HallwayType.plus;
-				}
-				break;
-			case HallwayType.plus:
-				//We're good, do nothing
-				break;
-			case HallwayType.end:
-				Direction oppositeExisting = getOppositeDirection(existingDirection);
-				if (dirToAddExit == existingDirection){
-					//Going out the way we came in, do nothing
-				}else if (dirToAddExit == oppositeExisting){
-					gridSquare.gridType = HallwayType.hall;
-				}else{
-					gridSquare.gridType = HallwayType.corner;
-					gridSquare.gridDirection = getCornerDirection(dirToAddExit, existingDirection);
-				}
+			if (current.Equals(end))
+			{
 				break;
 			}
-		}else{
-			gridSquare.gridType = HallwayType.end;
-			gridSquare.gridDirection = dirToAddExit;
+			
+			foreach (GridPosition next in current.getAdjacents())
+			{
+				if (next != null){
+					int newCost = costSoFar[current] + 1;
+					if (!costSoFar.ContainsKey(next) || newCost < costSoFar[next])
+					{
+						costSoFar.Add(next, newCost);
+						int priority = newCost + Heuristic(next, end);
+						frontier.Enqueue(next, priority);
+						cameFrom.Add(next, current);
+					}
+				}
+			}
 		}
+		
+		return new GridPosition[0];
 	}
 	
-	Direction leftDirectionFrom(Direction toTurn){
-		switch (toTurn) {
-		case Direction.north:
-			return Direction.east;
-		case Direction.east:
-			return Direction.south;
-		case Direction.south:
-			return Direction.west;
-		}
-		return Direction.north;
-	}
-
-	Direction rightDirectionFrom(Direction toTurn){
-		switch (toTurn) {
-		case Direction.north:
-			return Direction.west;
-		case Direction.east:
-			return Direction.north;
-		case Direction.south:
-			return Direction.east;
-		}
-		return Direction.south;
-	}
-
-	Direction getOppositeDirection(Direction toOppose){
-		switch (toOppose) {
-		case Direction.north:
-			return Direction.south;
-		case Direction.east:
-			return Direction.west;
-		case Direction.south:
-			return Direction.north;
-		}
-		return Direction.east;
-	}
-
-	Direction getCornerDirection (Direction newDirection, Direction oldDirection){
-		if ((newDirection == Direction.north && oldDirection == Direction.east) || (newDirection == Direction.east && oldDirection == Direction.north)) {
-			return Direction.north;
-		} else if ((newDirection == Direction.south && oldDirection == Direction.east) || (newDirection == Direction.east && oldDirection == Direction.south)) {
-			return Direction.east;
-		} else if ((newDirection == Direction.south && oldDirection == Direction.west) || (newDirection == Direction.west && oldDirection == Direction.south)) {
-			return Direction.south;
-		} else {
-			return Direction.west;
-		}
+	//Note: This should be changed if the map moves away from a simple grid to more optimized hallways
+	static public int Heuristic(GridPosition a, GridPosition b)
+	{
+		return Mathf.Abs(a.xPosition - b.xPosition) + Mathf.Abs(a.zPosition - b.zPosition);
 	}
 
 
-
-	Direction getNewDirection(GridPosition currentPosition){
+	Direction getNewDirection(int xCoord, int zCoord){
 		Direction newDirection;
 
-		if (currentPosition.xPosition == 0 && currentPosition.zPosition == 0) {
+		if (xCoord == 0 && zCoord == 0) {
 			//Northwest corner
 			newDirection = (Direction)Random.Range (1, 3);
 		} 
-		else if (currentPosition.xPosition == xDimension - 1 && currentPosition.zPosition == 0) {
+		else if (xCoord == xDimension - 1 && zCoord == 0) {
 			//Northeast corner
 			newDirection = (Direction)Random.Range (2, 4);
 		} 
-		else if (currentPosition.xPosition == xDimension - 1 && currentPosition.zPosition == zDimension - 1) {
+		else if (xCoord == xDimension - 1 && zCoord == zDimension - 1) {
 			//Southeast corner
 			newDirection = (Direction)Random.Range (0, 2);
 			if (newDirection == Direction.east){
 				newDirection = Direction.west;
 			}
 		} 
-		else if (currentPosition.xPosition == 0 && currentPosition.zPosition == zDimension - 1) {
+		else if (xCoord == 0 && zCoord == zDimension - 1) {
 			//Southwest corner
 			newDirection = (Direction)Random.Range (0, 2);
 		} 
-		else if (currentPosition.zPosition == 0) {
+		else if (zCoord == 0) {
 			//North wall
 			newDirection = (Direction)Random.Range (1, 4);
 		} 
-		else if (currentPosition.xPosition == xDimension - 1) {
+		else if (xCoord == xDimension - 1) {
 			//East wall
 			newDirection = (Direction)Random.Range (0, 3);
 			if (newDirection == Direction.south){
@@ -247,14 +183,14 @@ public class Map : MonoBehaviour {
 				newDirection = Direction.south;
 			}
 		} 
-		else if (currentPosition.zPosition == zDimension - 1) {
+		else if (zCoord == zDimension - 1) {
 			//South wall
 			newDirection = (Direction)Random.Range (0, 3);
 			if (newDirection == Direction.south){
 				newDirection = Direction.west;
 			}
 		} 
-		else if (currentPosition.xPosition == 0) {
+		else if (xCoord == 0) {
 			//West wall
 			newDirection = (Direction)Random.Range (0, 3);
 		} 
