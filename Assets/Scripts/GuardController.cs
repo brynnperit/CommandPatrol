@@ -15,6 +15,8 @@ public class GuardController : MonoBehaviour {
 	Transform[] pathfindingNodes;
 	int currentPathNode;
 	public string nodeTag;
+	public Map ourMap;
+	GridPosition ourPosition;
 
 	// Use this for initialization
 	void Start () {

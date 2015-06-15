@@ -2,9 +2,11 @@
 using System.Collections;
 
 public class HallwayPathController : MonoBehaviour {
-
+	
 	public Transform pathNode;
 	public float pathBoxScale;
+
+	//TODO: Restructure code so that these path nodes are actually given to the grid position in an organized collection so that agents can traverse them to pass through
 
 	// Use this for initialization
 	void Start () {

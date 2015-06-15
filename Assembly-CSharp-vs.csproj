@@ -48,9 +48,13 @@
   <ItemGroup>
      <Compile Include="Assets\Scripts\BulletController.cs" />
      <Compile Include="Assets\Scripts\EnemySpawner.cs" />
+     <Compile Include="Assets\Scripts\GridPosition.cs" />
      <Compile Include="Assets\Scripts\GuardController.cs" />
-     <Compile Include="Assets\Scripts\HallwayGenerator.cs" />
      <Compile Include="Assets\Scripts\HallwayPathController.cs" />
+     <Compile Include="Assets\Scripts\Map.cs" />
+     <Compile Include="Assets\Scripts\PriorityQueue\HeapPriorityQueue.cs" />
+     <Compile Include="Assets\Scripts\PriorityQueue\IPriorityQueue.cs" />
+     <Compile Include="Assets\Scripts\PriorityQueue\PriorityQueueNode.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>C:/Program Files/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>

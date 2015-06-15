@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class HallwayGenerator : MonoBehaviour {
+public class Map : MonoBehaviour {
 
 	public int numberSteps;
 	public int xDimension;
@@ -11,45 +11,35 @@ public class HallwayGenerator : MonoBehaviour {
 	public Transform hallwayT;
 	public Transform hallwayPlus;
 	public Transform hallwayEnd;
-	public enum Direction{ north=0, east=1, south=2, west=3};
-	public enum HallwayTypes{ hall=0, corner=1, T=2,plus=3,end=4 };
-	private class GridPosition {
-		public GridPosition(int x, int z){
-			xPosition = x;
-			zPosition = z;
-		}
-		public int xPosition;
-		public int zPosition;
-	}
+
+	GridPosition[,] mapGrid;
 	public float hallwayGridUnitSize;
 	public float yOffset;
 
 	// Use this for initialization
 	void Start () {
-		//X coord, Z coord, (type of hallway, direction of hallway)
-		int[,,] hallwayGrid = new int[xDimension,zDimension,2];
+		mapGrid = new GridPosition[xDimension, zDimension];
 		for (int xPos = 0; xPos < xDimension; xPos++) {
 			for (int zPos = 0; zPos < zDimension; zPos++){
-				hallwayGrid[xPos,zPos,0] = -1;
+				mapGrid[xPos, zPos] = new GridPosition(xPos, zPos);
 			}
 		}
-//		GridPosition currentPosition = new GridPosition (xDimension / 2, zDimension / 2);
-		GridPosition currentPosition = new GridPosition (0, 0);
+		GridPosition currentPosition = mapGrid[xDimension / 2, zDimension / 2];
 		Direction currentDirection = getNewDirection (currentPosition);
-		addExitToGridSquare (currentDirection, hallwayGrid, currentPosition);
-		setNewPosition(currentDirection, currentPosition);
+		addExitToGridSquare (currentDirection, currentPosition);
+		currentPosition = GridPosition.getPosition(mapGrid, currentDirection, currentPosition);
 		Direction newDirection;
 		int stepNumber = 1;
 		while (stepNumber < numberSteps) {
 
-			addExitToGridSquare(getOppositeDirection(currentDirection), hallwayGrid, currentPosition);
+			addExitToGridSquare(getOppositeDirection(currentDirection), currentPosition);
 
 			newDirection = getNewDirection(currentPosition);
 
 			if (stepNumber < numberSteps - 1){
-				addExitToGridSquare(newDirection, hallwayGrid, currentPosition);
+				addExitToGridSquare(newDirection, currentPosition);
 			}
-			setNewPosition(newDirection, currentPosition);
+			currentPosition = GridPosition.getPosition(mapGrid, newDirection, currentPosition);
 
 			currentDirection = newDirection;
 			stepNumber++;
@@ -57,35 +47,38 @@ public class HallwayGenerator : MonoBehaviour {
 
 		for (int xPos = 0; xPos < xDimension; xPos++){
 			for (int zPos = 0; zPos < zDimension; zPos++){
-				HallwayTypes hallType = (HallwayTypes)hallwayGrid[xPos,zPos,0];
-				Direction hallDirection = (Direction)hallwayGrid[xPos,zPos,1];
+				HallwayType hallType = mapGrid[xPos,zPos].gridType;
+				Direction hallDirection = mapGrid[xPos,zPos].gridDirection;
 				float xCoord = xPos * hallwayGridUnitSize;
 				float yCoord = yOffset;
 				float zCoord = -zPos * hallwayGridUnitSize;
 				Transform newHall;
 
+				mapGrid[xPos,zPos].setAdjacents(mapGrid);
+
 				switch (hallType){
-				case HallwayTypes.hall:
+				case HallwayType.hall:
 					newHall = Instantiate(hallway, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
 					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection), 0));
 					newHall.parent = transform;
 					break;
-				case HallwayTypes.corner:
+				case HallwayType.corner:
 					newHall = Instantiate(hallwayCorner, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
+					//These hallways, and the subsequent ones, end up being rotated 180 degrees from the direction we want to face. The +2 fixes that
 					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
 					newHall.parent = transform;
 					break;
-				case HallwayTypes.plus:
+				case HallwayType.plus:
 					newHall = Instantiate(hallwayPlus, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
 					//newHall.Rotate(new Vector3(0, -90 * ((int)hallDirection), 0));
 					newHall.parent = transform;
 					break;
-				case HallwayTypes.T:
+				case HallwayType.T:
 					newHall = Instantiate(hallwayT, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
 					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
 					newHall.parent = transform;
 					break;
-				case HallwayTypes.end:
+				case HallwayType.end:
 					newHall = Instantiate(hallwayEnd, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
 					newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
 					newHall.parent = transform;
@@ -95,71 +88,76 @@ public class HallwayGenerator : MonoBehaviour {
 		}
 	}
 
-	void addExitToGridSquare(Direction dirToAddExit, int[,,] grid, GridPosition gridSquare){
+	public GridPosition inefficientGetRandomMapPosition(){
+		GridPosition toReturn;
+		do {
+			int xPos = Random.Range(0, xDimension);
+			int zPos = Random.Range(0, zDimension);
+			toReturn = mapGrid[xPos,zPos];
+
+		} while(toReturn.gridType == HallwayType.none);
+		return toReturn;
+	}
+
+	void addExitToGridSquare(Direction dirToAddExit, GridPosition gridSquare){
 		bool interceptingExistingHallway;
-		int bla = 0;
-		if (gridSquare.xPosition < 0 || gridSquare.xPosition >= xDimension) {
-			bla++;
-		}
-		if (gridSquare.zPosition < 0 || gridSquare.zPosition >= zDimension){
-			bla++;
-		}
-		if (grid[gridSquare.xPosition,gridSquare.zPosition,0] == -1){
+
+		if (gridSquare.gridType == HallwayType.none){
 			interceptingExistingHallway = false;
 		}else{
 			interceptingExistingHallway = true;
 		}
 
 		if (interceptingExistingHallway){
-			HallwayTypes existingType = (HallwayTypes)grid[gridSquare.xPosition,gridSquare.zPosition,0];
-			Direction existingDirection = (Direction)grid[gridSquare.xPosition,gridSquare.zPosition,1];
+			HallwayType existingType = gridSquare.gridType;
+			Direction existingDirection = gridSquare.gridDirection;
 			switch(existingType){
-			case HallwayTypes.hall:
+			case HallwayType.hall:
 				if (dirToAddExit == existingDirection || dirToAddExit == getOppositeDirection(existingDirection)){
 					//Do nothing, we're just passing through an existing hallways, no changes needed
 				}else {
 					//Make it into a T towards dirToAddExit
-					grid[gridSquare.xPosition,gridSquare.zPosition,0] = (int)HallwayTypes.T;
-					grid[gridSquare.xPosition,gridSquare.zPosition,1] = (int)dirToAddExit;
+					gridSquare.gridType = HallwayType.T;
+					gridSquare.gridDirection = dirToAddExit;
 				}
 				break;
-			case HallwayTypes.corner:
-				Direction otherExistingDirection = getCornerOtherDirection(existingDirection);
+			case HallwayType.corner:
+				Direction otherExistingDirection = GridPosition.getCornerOtherDirection(existingDirection);
 				if (dirToAddExit == existingDirection || dirToAddExit == otherExistingDirection){
 					//Do nothing, we're just passing through an existing hallways, no changes needed
 				}else if (dirToAddExit == getOppositeDirection(existingDirection)){
 				//dirToAddExit is gonna be opposite one of the existing directions. Find out which one it is and point the t to the other one
-					grid[gridSquare.xPosition,gridSquare.zPosition,0] = (int)HallwayTypes.T;
-					grid[gridSquare.xPosition,gridSquare.zPosition,1] = (int)otherExistingDirection;
+					gridSquare.gridType =  HallwayType.T;
+					gridSquare.gridDirection = otherExistingDirection;
 				}else{
-					grid[gridSquare.xPosition,gridSquare.zPosition,0] = (int)HallwayTypes.T;
-					grid[gridSquare.xPosition,gridSquare.zPosition,1] = (int)existingDirection;
+					gridSquare.gridType = HallwayType.T;
+					gridSquare.gridDirection = existingDirection;
 				}
 			
 				break;
-			case HallwayTypes.T:
+			case HallwayType.T:
 				if (dirToAddExit == getOppositeDirection(existingDirection)){
-					grid[gridSquare.xPosition,gridSquare.zPosition,0] = (int)HallwayTypes.plus;
+					gridSquare.gridType = HallwayType.plus;
 				}
 				break;
-			case HallwayTypes.plus:
+			case HallwayType.plus:
 				//We're good, do nothing
 				break;
-			case HallwayTypes.end:
+			case HallwayType.end:
 				Direction oppositeExisting = getOppositeDirection(existingDirection);
 				if (dirToAddExit == existingDirection){
 					//Going out the way we came in, do nothing
 				}else if (dirToAddExit == oppositeExisting){
-					grid[gridSquare.xPosition,gridSquare.zPosition,0] = (int)HallwayTypes.hall;
+					gridSquare.gridType = HallwayType.hall;
 				}else{
-					grid[gridSquare.xPosition,gridSquare.zPosition,0] = (int)HallwayTypes.corner;
-					grid[gridSquare.xPosition,gridSquare.zPosition,1] = (int)getCornerDirection(dirToAddExit, existingDirection);
+					gridSquare.gridType = HallwayType.corner;
+					gridSquare.gridDirection = getCornerDirection(dirToAddExit, existingDirection);
 				}
 				break;
 			}
 		}else{
-			grid[gridSquare.xPosition,gridSquare.zPosition,0] = (int)HallwayTypes.end;
-			grid[gridSquare.xPosition,gridSquare.zPosition,1] = (int)dirToAddExit;
+			gridSquare.gridType = HallwayType.end;
+			gridSquare.gridDirection = dirToAddExit;
 		}
 	}
 	
@@ -211,18 +209,7 @@ public class HallwayGenerator : MonoBehaviour {
 		}
 	}
 
-	Direction getCornerOtherDirection(Direction ofCorner){
-		switch (ofCorner) {
-		case Direction.north:
-			return Direction.east;
-		case Direction.east:
-			return Direction.south;
-		case Direction.south:
-			return Direction.west;
-		}
-		//case Direction.west:
-		return Direction.north;
-	}
+
 
 	Direction getNewDirection(GridPosition currentPosition){
 		Direction newDirection;
@@ -279,24 +266,6 @@ public class HallwayGenerator : MonoBehaviour {
 		return newDirection;
 	}
 
-
-	void setNewPosition(Direction direction, GridPosition toSet){
-		switch (direction) {
-			case (Direction.north):
-				toSet.zPosition = toSet.zPosition - 1;
-				break;
-			case (Direction.east):
-				toSet.xPosition = toSet.xPosition + 1;
-				break;
-			case(Direction.south):
-				toSet.zPosition = toSet.zPosition + 1;
-				break;
-			case(Direction.west):
-				toSet.xPosition = toSet.xPosition - 1;
-				break;
-		}
-	}
-	
 	// Update is called once per frame
 	void Update () {
 	
