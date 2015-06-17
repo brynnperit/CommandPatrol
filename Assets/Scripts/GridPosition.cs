@@ -25,6 +25,28 @@ public class GridPosition : PriorityQueueNode {
 		ourNodes.owner = this;
 	}
 
+	public Transform getCenterPathNode(){
+		return ourNodes.centerNode;
+	}
+
+	public Transform getPathNode(Direction ofNode){
+		return ourNodes.getBorderNode (ofNode);
+	}
+
+	//TODO: Double check that this is a sane coding practice. I feel bad about how this makes sure it returns a good or bad result.
+	public Transform[] getPathThrough(Direction startingDirection, Direction endingDirection, Transform[] toStorePathIn){
+		if (ourNodes != null) {
+			return ourNodes.nodesToFollow(startingDirection, endingDirection, toStorePathIn);
+		} else {
+			if (toStorePathIn != null){
+				for (int i = 0; i < toStorePathIn.Length; i++){
+					toStorePathIn[i] = null;
+				}
+			}
+			return getPathThrough(startingDirection, endingDirection);
+		}
+	}
+
 	public Transform[] getPathThrough(Direction startingDirection, Direction endingDirection){
 		if (ourNodes != null) {
 			return ourNodes.nodesToFollow(startingDirection, endingDirection);
@@ -80,7 +102,7 @@ public class GridPosition : PriorityQueueNode {
 			break;
 		}
 		for (int i = 0; i < validDirections.Length; i++){
-				setAdjacent(validDirections[i], getPosition(mapGrid, validDirections[i], this));
+			setAdjacent(validDirections[i], getPosition(mapGrid, validDirections[i], this));
 		}
 
 	}
@@ -99,11 +121,9 @@ public class GridPosition : PriorityQueueNode {
 		}
 		
 		if (interceptingExistingHallway){
-			HallwayType existingType = gridType;
-			Direction existingDirection = gridDirection;
-			switch(existingType){
+			switch(gridType){
 			case HallwayType.hall:
-				if (dirToAddExit == existingDirection || dirToAddExit == getOppositeDirection(existingDirection)){
+				if (dirToAddExit == gridDirection || dirToAddExit == getOppositeDirection(gridDirection)){
 					//Do nothing, we're just passing through an existing hallways, no changes needed
 				}else {
 					//Make it into a T towards dirToAddExit
@@ -112,21 +132,21 @@ public class GridPosition : PriorityQueueNode {
 				}
 				break;
 			case HallwayType.corner:
-				Direction otherExistingDirection = GridPosition.getCornerOtherDirection(existingDirection);
-				if (dirToAddExit == existingDirection || dirToAddExit == otherExistingDirection){
+				Direction otherExistingDirection = GridPosition.getCornerOtherDirection(gridDirection);
+				if (dirToAddExit == gridDirection || dirToAddExit == otherExistingDirection){
 					//Do nothing, we're just passing through an existing hallways, no changes needed
-				}else if (dirToAddExit == getOppositeDirection(existingDirection)){
+				}else if (dirToAddExit == getOppositeDirection(gridDirection)){
 					//dirToAddExit is gonna be opposite one of the existing directions. Find out which one it is and point the t to the other one
 					gridType =  HallwayType.T;
 					gridDirection = otherExistingDirection;
 				}else{
 					gridType = HallwayType.T;
-					gridDirection = existingDirection;
+					gridDirection = gridDirection;
 				}
 				
 				break;
 			case HallwayType.T:
-				if (dirToAddExit == getOppositeDirection(existingDirection)){
+				if (dirToAddExit == getOppositeDirection(gridDirection)){
 					gridType = HallwayType.plus;
 				}
 				break;
@@ -134,14 +154,14 @@ public class GridPosition : PriorityQueueNode {
 				//We're good, do nothing
 				break;
 			case HallwayType.end:
-				Direction oppositeExisting = getOppositeDirection(existingDirection);
-				if (dirToAddExit == existingDirection){
+				Direction oppositeExisting = getOppositeDirection(gridDirection);
+				if (dirToAddExit == gridDirection){
 					//Going out the way we came in, do nothing
 				}else if (dirToAddExit == oppositeExisting){
 					gridType = HallwayType.hall;
 				}else{
 					gridType = HallwayType.corner;
-					gridDirection = getCornerDirection(dirToAddExit, existingDirection);
+					gridDirection = getCornerDirection(dirToAddExit, gridDirection);
 				}
 				break;
 			}
@@ -236,6 +256,18 @@ public class GridPosition : PriorityQueueNode {
 			break;
 		}
 		return null;
+	}
+
+	public Direction getDirectionOfAdjacentGridPosition(GridPosition adjacentPosition){
+		if (adjacentPositions != null){
+			for (int dir = 0; dir < adjacentPositions.Length; dir++){
+				if (adjacentPositions[dir] == adjacentPosition){
+					return (Direction)dir;
+				}
+			}
+		}
+		//TODO: Find a better thing to do here than just return north. I mean, yes, GIGO applies but it feels impolite.
+		return Direction.north;
 	}
 }
 

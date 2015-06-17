@@ -21,6 +21,9 @@ public class Map : MonoBehaviour {
 	public Transform pathNode;
 	public float pathBoxScale;
 
+	public PathfindingAgent pathAgent;
+	public PathfindingAgent[] pathAgents;
+
 	// Use this for initialization
 	void Start () {
 		mapGrid = new GridPosition[xDimension, zDimension];
@@ -100,13 +103,20 @@ public class Map : MonoBehaviour {
 				}
 			}
 		}
-	}
+		pathAgents = new PathfindingAgent[1];
+		PathfindingAgent mainAgent = Instantiate (pathAgent, Vector3.zero, Quaternion.identity) as PathfindingAgent;
+		mainAgent.initialize (this, reallyinefficientGetRandomMapPosition (), reallyinefficientGetRandomMapPosition ());
+		pathAgents [0] = mainAgent;
 
+
+
+	}
+	
 	public GridPosition getGridPosition(int xCoord, int zCoord){
 		return mapGrid [xCoord, zCoord];
 	}
 
-	public GridPosition inefficientGetRandomMapPosition(){
+	public GridPosition reallyinefficientGetRandomMapPosition(){
 		GridPosition toReturn;
 		do {
 			int xPos = Random.Range(0, xDimension);
@@ -117,6 +127,9 @@ public class Map : MonoBehaviour {
 		return toReturn;
 	}
 
+	public int getMapSize(){
+		return xDimension * zDimension;
+	}
 
 	//This code is based on A* search algorithms found on http://www.redblobgames.com/pathfinding/a-star/implementation.html#csharp
 	public static GridPosition[] getPathToPosition(GridPosition start, GridPosition end, int mapSize){
@@ -128,10 +141,12 @@ public class Map : MonoBehaviour {
 		
 		cameFrom.Add(start, start);
 		costSoFar.Add(start, 0);
+
+		GridPosition current = start;
 		
 		while (frontier.Count > 0)
 		{
-			var current = frontier.Dequeue();
+			current = frontier.Dequeue();
 			
 			if (current.Equals(end))
 			{
@@ -152,8 +167,25 @@ public class Map : MonoBehaviour {
 				}
 			}
 		}
-		
-		return new GridPosition[0];
+		if (current == end) {
+			List<GridPosition> reversePathToDestination = new List<GridPosition>();
+			GridPosition nextItem = cameFrom[current];
+			reversePathToDestination.Add(current);
+			while (nextItem != null && nextItem != start){
+				reversePathToDestination.Add(nextItem);
+				nextItem = cameFrom[nextItem];
+			}
+			GridPosition[] toReturn = new GridPosition[reversePathToDestination.Count];
+			int position = toReturn.GetUpperBound(0);
+			foreach (GridPosition currentPosition in reversePathToDestination){
+				toReturn[position] = currentPosition;
+				position--;
+			}
+			return toReturn;
+
+		} else {
+			return new GridPosition[0];
+		}
 	}
 	
 	//Note: This should be changed if the map moves away from a simple grid to more optimized hallways
@@ -217,8 +249,6 @@ public class Map : MonoBehaviour {
 		
 		return newDirection;
 	}
-
-	//TODO: Restructure code so that these path nodes are actually given to the grid position in an organized collection so that agents can traverse them to pass through
 
 	static PathfindingNodeCollection createNodeCollection (Transform gridTransform, GridPosition hallway, float pathBoxScale, Transform pathNode) {
 		PathfindingNodeCollection ourNodes = new PathfindingNodeCollection ();
