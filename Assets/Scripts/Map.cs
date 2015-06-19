@@ -152,17 +152,28 @@ public class Map : MonoBehaviour {
 			{
 				break;
 			}
-			
+
 			foreach (GridPosition next in current.getAdjacents())
 			{
 				if (next != null){
 					int newCost = costSoFar[current] + 1;
-					if (!costSoFar.ContainsKey(next) || newCost < costSoFar[next])
+					bool containsKey = costSoFar.ContainsKey(next);
+					if (!containsKey || newCost < costSoFar[next])
 					{
-						costSoFar.Add(next, newCost);
+						if (!containsKey){
+							costSoFar.Add(next, newCost);
+						}else{
+							//This prevents an infinite loop for some reason.
+							break;
+						}
+
 						int priority = newCost + Heuristic(next, end);
 						frontier.Enqueue(next, priority);
-						cameFrom.Add(next, current);
+						if (!cameFrom.ContainsKey(next)){
+							cameFrom.Add(next, current);
+						}else{
+							cameFrom[next] = current;
+						}
 					}
 				}
 			}
