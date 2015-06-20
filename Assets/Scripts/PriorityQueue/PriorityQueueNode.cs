@@ -1,7 +1,7 @@
 ﻿namespace Priority_Queue
 {
-    public class PriorityQueueNode
-    {
+	public class PriorityQueueNode : IPriorityQueueNode
+	{
         /// <summary>
         /// The Priority to insert this node at.  Must be set BEFORE adding a node to the queue
         /// </summary>

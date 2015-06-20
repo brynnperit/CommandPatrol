@@ -11,7 +11,7 @@ namespace Priority_Queue
     /// </summary>
     /// <typeparam name="T">The values in the queue.  Must implement the PriorityQueueNode interface</typeparam>
     public sealed class HeapPriorityQueue<T> : IPriorityQueue<T>
-        where T : PriorityQueueNode
+		where T : class, IPriorityQueueNode
     {
         private int _numNodes;
         private readonly T[] _nodes;

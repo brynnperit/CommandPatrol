@@ -1,12 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.ObjectModel;
 using Priority_Queue;
 
-public class GridPosition : PriorityQueueNode {
+public class GridPosition : PriorityQueueNode, IMapPosition {
 
-	GridPosition[] adjacentPositions;
+	IMapPosition[] adjacentPositions;
 	public int xPosition{ get; set; }
 	public int zPosition{ get; set; }
+
+	public int xSize{ get; set; }
+	public int zSize{ get; set; }
 	
 	public Direction gridDirection{ get; set; }
 	public HallwayType gridType{ get; set; }
@@ -17,7 +21,9 @@ public class GridPosition : PriorityQueueNode {
 		xPosition = x;
 		zPosition = z;
 		gridType = HallwayType.none;
-		adjacentPositions = new GridPosition[4];
+		adjacentPositions = new IMapPosition[4];
+		xSize = 1;
+		zSize = 1;
 	}
 
 	public void setPathNodes(PathfindingNodeCollection nodes){
@@ -29,12 +35,18 @@ public class GridPosition : PriorityQueueNode {
 		return ourNodes.centerNode;
 	}
 
+	public Transform getPathNode(int xPosition, int zPosition){
+		return getCenterPathNode();
+	}
+
 	public Transform getPathNode(Direction ofNode){
 		return ourNodes.getBorderNode (ofNode);
 	}
 
 	//TODO: Double check that this is a sane coding practice. I feel bad about how this makes sure it returns a good or bad result.
-	public Transform[] getPathThrough(Direction startingDirection, Direction endingDirection, Transform[] toStorePathIn){
+	public Transform[] getPathThrough(IMapPosition startingPosition, IMapPosition endingPosition, Transform[] toStorePathIn){
+		Direction startingDirection = getDirectionOfAdjacentMapPosition(startingPosition);
+		Direction endingDirection = getDirectionOfAdjacentMapPosition(endingPosition);
 		if (ourNodes != null) {
 			return ourNodes.nodesToFollow(startingDirection, endingDirection, toStorePathIn);
 		} else {
@@ -43,11 +55,13 @@ public class GridPosition : PriorityQueueNode {
 					toStorePathIn[i] = null;
 				}
 			}
-			return getPathThrough(startingDirection, endingDirection);
+			return toStorePathIn;
 		}
 	}
 
-	public Transform[] getPathThrough(Direction startingDirection, Direction endingDirection){
+	public Transform[] getPathThrough(IMapPosition startingPosition, IMapPosition endingPosition){
+		Direction startingDirection = getDirectionOfAdjacentMapPosition(startingPosition);
+		Direction endingDirection = getDirectionOfAdjacentMapPosition(endingPosition);
 		if (ourNodes != null) {
 			return ourNodes.nodesToFollow(startingDirection, endingDirection);
 		} else {
@@ -55,12 +69,8 @@ public class GridPosition : PriorityQueueNode {
 		}
 	}
 
-	public void setAdjacent(Direction adjDirection, GridPosition toSet){
-		if (toSet == null || toSet.gridType == HallwayType.none) {
-			adjacentPositions[(int)adjDirection] = null;
-		} else {
-			adjacentPositions [(int)adjDirection] = toSet;
-		}
+	public void setAdjacent(Direction adjDirection, IMapPosition toSet){
+		adjacentPositions [(int)adjDirection] = toSet;
 	}
 	
 	public void setAdjacents(GridPosition[,] mapGrid){
@@ -107,8 +117,8 @@ public class GridPosition : PriorityQueueNode {
 
 	}
 
-	public GridPosition[] getAdjacents(){
-		return adjacentPositions;
+	public ReadOnlyCollection<IMapPosition> getAdjacents(){
+		return new ReadOnlyCollection<IMapPosition>(adjacentPositions);
 	}
 
 	public void addExitToGridSquare(Direction dirToAddExit){
@@ -258,10 +268,10 @@ public class GridPosition : PriorityQueueNode {
 		return null;
 	}
 
-	public Direction getDirectionOfAdjacentGridPosition(GridPosition adjacentPosition){
+	public Direction getDirectionOfAdjacentMapPosition(IMapPosition adjacentPosition){
 		if (adjacentPositions != null){
 			for (int dir = 0; dir < adjacentPositions.Length; dir++){
-				if (adjacentPositions[dir] == adjacentPosition){
+				if (adjacentPositions[dir] != null && adjacentPositions[dir].xPosition == adjacentPosition.xPosition && adjacentPositions[dir].zPosition == adjacentPosition.zPosition){
 					return (Direction)dir;
 				}
 			}

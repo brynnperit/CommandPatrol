@@ -132,17 +132,17 @@ public class Map : MonoBehaviour {
 	}
 
 	//This code is based on A* search algorithms found on http://www.redblobgames.com/pathfinding/a-star/implementation.html#csharp
-	public static GridPosition[] getPathToPosition(GridPosition start, GridPosition end, int mapSize){
+	public static IMapPosition[] getPathToPosition(IMapPosition start, IMapPosition end, int mapSize){
 		//Evaluate each adjacent node, adding them to the open set sorted by their cost. Then repeat for the lowest estimated cost node in the open set. 
-		Dictionary<GridPosition, GridPosition> cameFrom = new Dictionary<GridPosition, GridPosition> ();
-		Dictionary<GridPosition, int> costSoFar	= new Dictionary<GridPosition, int>();
-		HeapPriorityQueue<GridPosition> frontier = new HeapPriorityQueue<GridPosition>(mapSize);
+		Dictionary<IMapPosition, IMapPosition> cameFrom = new Dictionary<IMapPosition, IMapPosition> ();
+		Dictionary<IMapPosition, int> costSoFar	= new Dictionary<IMapPosition, int>();
+		HeapPriorityQueue<IMapPosition> frontier = new HeapPriorityQueue<IMapPosition>(mapSize);
 		frontier.Enqueue(start, 0);
 		
 		cameFrom.Add(start, start);
 		costSoFar.Add(start, 0);
 
-		GridPosition current = start;
+		IMapPosition current = start;
 		
 		while (frontier.Count > 0)
 		{
@@ -153,7 +153,7 @@ public class Map : MonoBehaviour {
 				break;
 			}
 
-			foreach (GridPosition next in current.getAdjacents())
+			foreach (IMapPosition next in current.getAdjacents())
 			{
 				if (next != null){
 					int newCost = costSoFar[current] + 1;
@@ -179,14 +179,14 @@ public class Map : MonoBehaviour {
 			}
 		}
 		if (current == end) {
-			List<GridPosition> reversePathToDestination = new List<GridPosition>();
-			GridPosition nextItem = cameFrom[current];
+			List<IMapPosition> reversePathToDestination = new List<IMapPosition>();
+			IMapPosition nextItem = cameFrom[current];
 			reversePathToDestination.Add(current);
 			while (nextItem != null && nextItem != start){
 				reversePathToDestination.Add(nextItem);
 				nextItem = cameFrom[nextItem];
 			}
-			GridPosition[] toReturn = new GridPosition[reversePathToDestination.Count];
+			IMapPosition[] toReturn = new IMapPosition[reversePathToDestination.Count];
 			int position = toReturn.GetUpperBound(0);
 			foreach (GridPosition currentPosition in reversePathToDestination){
 				toReturn[position] = currentPosition;
@@ -200,7 +200,7 @@ public class Map : MonoBehaviour {
 	}
 	
 	//Note: This should be changed if the map moves away from a simple grid to more optimized hallways
-	static public int Heuristic(GridPosition a, GridPosition b)
+	static public int Heuristic(IMapPosition a, IMapPosition b)
 	{
 		return Mathf.Abs(a.xPosition - b.xPosition) + Mathf.Abs(a.zPosition - b.zPosition);
 	}
@@ -261,7 +261,9 @@ public class Map : MonoBehaviour {
 		return newDirection;
 	}
 
-	static PathfindingNodeCollection createNodeCollection (Transform gridTransform, GridPosition hallway, float pathBoxScale, Transform pathNode) {
+	//The following two methods are located in Map instead of pathfindingnodecollection because they need to instantiate path nodes which can only be done from classes that extend
+	//MonoBehaviour
+	public static PathfindingNodeCollection createNodeCollection (Transform gridTransform, GridPosition hallway, float pathBoxScale, Transform pathNode) {
 		PathfindingNodeCollection ourNodes = new PathfindingNodeCollection ();
 		if (hallway.gridType == HallwayType.hall) 
 		{
@@ -311,6 +313,8 @@ public class Map : MonoBehaviour {
 		newPathNode.Translate(new Vector3(x,y,z));
 		return newPathNode;
 	}
+	
+
 
 	// Update is called once per frame
 	void Update () {

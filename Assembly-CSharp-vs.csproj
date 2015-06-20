@@ -50,11 +50,13 @@
      <Compile Include="Assets\Scripts\EnemySpawner.cs" />
      <Compile Include="Assets\Scripts\GridPosition.cs" />
      <Compile Include="Assets\Scripts\GuardController.cs" />
+     <Compile Include="Assets\Scripts\IMapPosition.cs" />
      <Compile Include="Assets\Scripts\Map.cs" />
      <Compile Include="Assets\Scripts\PathfindingAgent.cs" />
      <Compile Include="Assets\Scripts\PathfindingNodeCollection.cs" />
      <Compile Include="Assets\Scripts\PriorityQueue\HeapPriorityQueue.cs" />
      <Compile Include="Assets\Scripts\PriorityQueue\IPriorityQueue.cs" />
+     <Compile Include="Assets\Scripts\PriorityQueue\IPriorityQueueNode.cs" />
      <Compile Include="Assets\Scripts\PriorityQueue\PriorityQueueNode.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>C:/Program Files/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>

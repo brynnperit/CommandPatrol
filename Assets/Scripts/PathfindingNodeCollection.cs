@@ -74,5 +74,5 @@ public class PathfindingNodeCollection {
 
 	public Transform[] nodesToFollow(Direction startingDirection, Direction endingDirection){
 		return nodesToFollow (startingDirection, endingDirection, new Transform[3]);
-	}
+	}	
 }

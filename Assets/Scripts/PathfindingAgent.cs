@@ -3,10 +3,10 @@ using System.Collections;
 
 public class PathfindingAgent : MonoBehaviour {
 
-	GridPosition ourPosition;
-	GridPosition destination;
+	IMapPosition ourPosition;
+	IMapPosition destination;
 	public Map ourMap{ get; set; }
-	GridPosition[] pathToDestination;
+	IMapPosition[] pathToDestination;
 	int stepAlongPathToDestination;
 
 	Transform[] subgridPath;
@@ -35,9 +35,13 @@ public class PathfindingAgent : MonoBehaviour {
 		setDestination (initialDestination);
 	}
 
-	public void resetPosition(GridPosition toSet){
+	public void resetPosition(IMapPosition toSet){
+		resetPosition(toSet, toSet.getCenterPathNode());
+	}
+
+	public void resetPosition(IMapPosition toSet, Transform pathNode){
 		ourPosition = toSet;
-		transform.position = ourPosition.getCenterPathNode().position;
+		transform.position = pathNode.position;
 	}
 
 	public void setDestination(GridPosition destinationToSet){
@@ -53,18 +57,7 @@ public class PathfindingAgent : MonoBehaviour {
 			
 			stepAlongPathToDestination = -1;
 			MoveToNextStep();
-			
-			//			GridPosition nextPosition = pathToDestination [stepAlongPathToDestination + 1];
-			//
-			//			Direction startingDirection = GridPosition.getOppositeDirection(ourPosition.getDirectionOfAdjacentGridPosition (nextPosition));
-			//			//TODO: Code the case that there's only one entry in the path to the destination, preferably by just combining with the code at the MARK below
-			//			directionOfNextStep = nextPosition.getDirectionOfAdjacentGridPosition (pathToDestination [stepAlongPathToDestination + 1]);
-			//
-			//			stepAlongPathToDestination++;
-			//			ourPosition = pathToDestination [stepAlongPathToDestination];
-			//
-			//			ourPosition.getPathThrough (startingDirection, directionOfNextStep, subgridPath);
-			//			currentPathNode = 0;
+
 		}
 	}
 
@@ -73,17 +66,12 @@ public class PathfindingAgent : MonoBehaviour {
 
 		//array size 12, length is 12, final position is 11 which equals length -1, < that is 10 and below. < -2 below that is 9 and below
 		if (stepAlongPathToDestination < pathToDestination.Length - 2) {
-			GridPosition precedingPosition = ourPosition;
+			IMapPosition precedingPosition = ourPosition;
 
 			stepAlongPathToDestination++;
 			ourPosition = pathToDestination [stepAlongPathToDestination];
 
-			Direction directionFromPreviousToCurrent = precedingPosition.getDirectionOfAdjacentGridPosition (ourPosition);
-			Direction directionFromCurrentToPrevious = GridPosition.getOppositeDirection (directionFromPreviousToCurrent);
-
-			Direction directionFromCurrentToNext = ourPosition.getDirectionOfAdjacentGridPosition (pathToDestination [stepAlongPathToDestination + 1]);
-
-			ourPosition.getPathThrough (directionFromCurrentToPrevious, directionFromCurrentToNext, subgridPath);
+			subgridPath = ourPosition.getPathThrough (precedingPosition, pathToDestination [stepAlongPathToDestination + 1], subgridPath);
 			currentPathNode = 0;
 
 		} else if (stepAlongPathToDestination == pathToDestination.Length - 2) {
