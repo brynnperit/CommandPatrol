@@ -21,8 +21,9 @@ public class PathfindingAgent : MonoBehaviour {
 
 	public float agentScale;
 
+	bool paused;
 
-	// Use this for initialization
+	// Don't use this for initialization, it doesn't happen at the correct time.
 	void Start () {
 
 	}
@@ -30,6 +31,7 @@ public class PathfindingAgent : MonoBehaviour {
 	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination){
 		ourMap = parentMap;
 		subgridPath = new Transform[3];
+		paused = false;
 		transform.localScale = new Vector3 (agentScale, agentScale, agentScale);
 		resetPosition (initialGridPosition);
 		setDestination (initialDestination);
@@ -59,6 +61,14 @@ public class PathfindingAgent : MonoBehaviour {
 			MoveToNextStep();
 
 		}
+	}
+
+	public void pauseAgent(){
+		paused = true;
+	}
+
+	public void unpauseAgent(){
+		paused = false;
 	}
 
 	void MoveToNextStep ()
@@ -92,19 +102,22 @@ public class PathfindingAgent : MonoBehaviour {
 	}
 	
 	// Update is called once per frame
+	//TODO: Move this into fixedUpdate, either make motion entirely physics and acceleration based or for now just calculate the velocity in each frame and hand that to the physics
 	void Update () {
-		if (subgridPath != null && subgridPath[currentPathNode] != null) {
-			float moveRemaining = agentSpeed * Time.deltaTime;
-			while (moveRemaining > 0.01){
-				Vector3 newPosition = Vector3.MoveTowards (transform.position, subgridPath [currentPathNode].position, moveRemaining);
-				Vector3 difference = newPosition - transform.position;
-				moveRemaining -= difference.magnitude;
-				transform.position = newPosition;
-				if (Vector3.Distance(transform.position, subgridPath [currentPathNode].position) < 0.01){
-					if (currentPathNode == subgridPath.Length - 1){
-						MoveToNextStep ();
-					}else{
-						currentPathNode++;
+		if (!paused) {
+			if (subgridPath != null && subgridPath [currentPathNode] != null) {
+				float moveRemaining = agentSpeed * Time.deltaTime;
+				while (moveRemaining > 0.01) {
+					Vector3 newPosition = Vector3.MoveTowards (transform.position, subgridPath [currentPathNode].position, moveRemaining);
+					Vector3 difference = newPosition - transform.position;
+					moveRemaining -= difference.magnitude;
+					transform.position = newPosition;
+					if (Vector3.Distance (transform.position, subgridPath [currentPathNode].position) < 0.01) {
+						if (currentPathNode == subgridPath.Length - 1) {
+							MoveToNextStep ();
+						} else {
+							currentPathNode++;
+						}
 					}
 				}
 			}

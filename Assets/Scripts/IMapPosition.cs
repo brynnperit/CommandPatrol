@@ -7,7 +7,7 @@ public interface IMapPosition : IPriorityQueueNode {
 
 	Transform getCenterPathNode();
 	Transform getPathNode(int xPosition, int zPosition);
-	Direction getDirectionOfAdjacentMapPosition(IMapPosition adjacentPosition);
+	Direction getDirectionOfAdjacentNonEmptyConnectedMapPosition(IMapPosition adjacentPosition);
 	ReadOnlyCollection<IMapPosition> getAdjacents();
 	Transform[] getPathThrough(IMapPosition startingPosition, IMapPosition endingPosition, Transform[] toStorePathIn);
 	Transform[] getPathThrough(IMapPosition startingPosition, IMapPosition endingPosition);
@@ -15,4 +15,6 @@ public interface IMapPosition : IPriorityQueueNode {
 	int zPosition{ get; set; }
 	int xSize{ get; set; }
 	int zSize{ get; set; }
+	bool isEmpty();
+	Transform visualRepresentation{ get; set; }
 }

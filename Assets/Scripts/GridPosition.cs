@@ -15,6 +15,8 @@ public class GridPosition : PriorityQueueNode, IMapPosition {
 	public Direction gridDirection{ get; set; }
 	public HallwayType gridType{ get; set; }
 
+	public Transform visualRepresentation{ get; set; }
+
 	PathfindingNodeCollection ourNodes;
 
 	public GridPosition(int x, int z){
@@ -45,8 +47,8 @@ public class GridPosition : PriorityQueueNode, IMapPosition {
 
 	//TODO: Double check that this is a sane coding practice. I feel bad about how this makes sure it returns a good or bad result.
 	public Transform[] getPathThrough(IMapPosition startingPosition, IMapPosition endingPosition, Transform[] toStorePathIn){
-		Direction startingDirection = getDirectionOfAdjacentMapPosition(startingPosition);
-		Direction endingDirection = getDirectionOfAdjacentMapPosition(endingPosition);
+		Direction startingDirection = getDirectionOfAdjacentNonEmptyConnectedMapPosition(startingPosition);
+		Direction endingDirection = getDirectionOfAdjacentNonEmptyConnectedMapPosition(endingPosition);
 		if (ourNodes != null) {
 			return ourNodes.nodesToFollow(startingDirection, endingDirection, toStorePathIn);
 		} else {
@@ -60,8 +62,8 @@ public class GridPosition : PriorityQueueNode, IMapPosition {
 	}
 
 	public Transform[] getPathThrough(IMapPosition startingPosition, IMapPosition endingPosition){
-		Direction startingDirection = getDirectionOfAdjacentMapPosition(startingPosition);
-		Direction endingDirection = getDirectionOfAdjacentMapPosition(endingPosition);
+		Direction startingDirection = getDirectionOfAdjacentNonEmptyConnectedMapPosition(startingPosition);
+		Direction endingDirection = getDirectionOfAdjacentNonEmptyConnectedMapPosition(endingPosition);
 		if (ourNodes != null) {
 			return ourNodes.nodesToFollow(startingDirection, endingDirection);
 		} else {
@@ -268,7 +270,27 @@ public class GridPosition : PriorityQueueNode, IMapPosition {
 		return null;
 	}
 
-	public Direction getDirectionOfAdjacentMapPosition(IMapPosition adjacentPosition){
+	public bool isEmpty(){
+		if (gridType == HallwayType.none) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public static Direction getDirectionBetweenAdjacentGridPositions(GridPosition firstPosition, GridPosition secondPosition){
+		if (firstPosition.zPosition > secondPosition.zPosition) {
+			return Direction.north;
+		} else if (firstPosition.xPosition < secondPosition.xPosition){
+			return Direction.east;
+		} else if (firstPosition.zPosition < secondPosition.zPosition){
+			return Direction.south;
+		} else{
+			return Direction.west;
+		}
+	}
+
+	public Direction getDirectionOfAdjacentNonEmptyConnectedMapPosition(IMapPosition adjacentPosition){
 		if (adjacentPositions != null){
 			for (int dir = 0; dir < adjacentPositions.Length; dir++){
 				if (adjacentPositions[dir] != null && adjacentPositions[dir].xPosition == adjacentPosition.xPosition && adjacentPositions[dir].zPosition == adjacentPosition.zPosition){

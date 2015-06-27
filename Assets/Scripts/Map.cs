@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using Priority_Queue;
@@ -24,8 +25,24 @@ public class Map : MonoBehaviour {
 	public PathfindingAgent pathAgent;
 	public PathfindingAgent[] pathAgents;
 
+	bool lastClickedValid;
+	Vector3 lastMouseCoordsOnMap;
+	GridPosition lastClickedPosition;
+
+	public Camera playerCamera;
+
+	public Text coordsClickedOn;
+
+	Plane mapBasePlane;
+
+	bool editMode;
+
 	// Use this for initialization
 	void Start () {
+		editMode = false;
+
+		mapBasePlane = new Plane(transform.up, transform.position);
+
 		mapGrid = new GridPosition[xDimension, zDimension];
 		for (int xPos = 0; xPos < xDimension; xPos++) {
 			for (int zPos = 0; zPos < zDimension; zPos++){
@@ -56,51 +73,7 @@ public class Map : MonoBehaviour {
 
 		for (int xPos = 0; xPos < xDimension; xPos++){
 			for (int zPos = 0; zPos < zDimension; zPos++){
-				HallwayType hallType = mapGrid[xPos,zPos].gridType;
-				if (hallType != HallwayType.none){
-					Direction hallDirection = mapGrid[xPos,zPos].gridDirection;
-					float xCoord = xPos * hallwayGridUnitSize;
-					float yCoord = yOffset;
-					float zCoord = -zPos * hallwayGridUnitSize;
-					Transform newHall;
-					currentPosition = mapGrid[xPos, zPos];
-
-					currentPosition.setAdjacents(mapGrid);
-
-					switch (hallType){
-					case HallwayType.hall:
-						newHall = Instantiate(hallway, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-						newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection), 0));
-						newHall.parent = transform;
-						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
-						break;
-					case HallwayType.corner:
-						newHall = Instantiate(hallwayCorner, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-						//These hallways, and the subsequent ones, end up being rotated 180 degrees from the direction we want to face. The +2 fixes that
-						newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
-						newHall.parent = transform;
-						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
-						break;
-					case HallwayType.plus:
-						newHall = Instantiate(hallwayPlus, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-						//newHall.Rotate(new Vector3(0, -90 * ((int)hallDirection), 0));
-						newHall.parent = transform;
-						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
-						break;
-					case HallwayType.T:
-						newHall = Instantiate(hallwayT, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-						newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
-						newHall.parent = transform;
-						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
-						break;
-					case HallwayType.end:
-						newHall = Instantiate(hallwayEnd, new Vector3 (xCoord, yCoord, zCoord), Quaternion.identity) as Transform;
-						newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
-						newHall.parent = transform;
-						currentPosition.setPathNodes(createNodeCollection(newHall, currentPosition, pathBoxScale, pathNode));
-						break;
-					}
-				}
+				generateGridPosition(mapGrid[xPos, zPos]);
 			}
 		}
 		pathAgents = new PathfindingAgent[1];
@@ -111,7 +84,67 @@ public class Map : MonoBehaviour {
 
 
 	}
-	
+
+	public void generateGridPosition(GridPosition toGenerate){
+		if (toGenerate.visualRepresentation != null) {
+			Destroy(toGenerate.visualRepresentation.gameObject);
+		}
+		HallwayType hallType = toGenerate.gridType;
+		if (hallType != HallwayType.none){
+			Direction hallDirection = toGenerate.gridDirection;
+			float xCoord = toGenerate.xPosition * hallwayGridUnitSize;
+			float yCoord = yOffset;
+			float zCoord = toGenerate.zPosition * hallwayGridUnitSize * -1.0f;
+			Transform newHall;
+			
+			toGenerate.setAdjacents(mapGrid);
+			
+			switch (hallType){
+			case HallwayType.hall:
+				newHall = Instantiate(hallway, transform.position, Quaternion.identity) as Transform;
+				newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection), 0));
+				newHall.parent = transform;
+				newHall.localPosition = new Vector3(xCoord, yCoord, zCoord);
+				toGenerate.setPathNodes(createNodeCollection(newHall, toGenerate, pathBoxScale, pathNode));
+				toGenerate.visualRepresentation = newHall;
+				break;
+			case HallwayType.corner:
+				newHall = Instantiate(hallwayCorner, transform.position, Quaternion.identity) as Transform;
+				//These hallways, and the subsequent ones, end up being rotated 180 degrees from the direction we want to face. The +2 fixes that
+				newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+				newHall.parent = transform;
+				newHall.localPosition = new Vector3(xCoord, yCoord, zCoord);
+				toGenerate.setPathNodes(createNodeCollection(newHall, toGenerate, pathBoxScale, pathNode));
+				toGenerate.visualRepresentation = newHall;
+				break;
+			case HallwayType.plus:
+				newHall = Instantiate(hallwayPlus, transform.position, Quaternion.identity) as Transform;
+				//newHall.Rotate(new Vector3(0, -90 * ((int)hallDirection), 0));
+				newHall.parent = transform;
+				newHall.localPosition = new Vector3(xCoord, yCoord, zCoord);
+				toGenerate.setPathNodes(createNodeCollection(newHall, toGenerate, pathBoxScale, pathNode));
+				toGenerate.visualRepresentation = newHall;
+				break;
+			case HallwayType.T:
+				newHall = Instantiate(hallwayT, transform.position, Quaternion.identity) as Transform;
+				newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+				newHall.parent = transform;
+				newHall.localPosition = new Vector3(xCoord, yCoord, zCoord);
+				toGenerate.setPathNodes(createNodeCollection(newHall, toGenerate, pathBoxScale, pathNode));
+				toGenerate.visualRepresentation = newHall;
+				break;
+			case HallwayType.end:
+				newHall = Instantiate(hallwayEnd, transform.position, Quaternion.identity) as Transform;
+				newHall.Rotate(new Vector3(0, 90 * ((int)hallDirection + 2), 0));
+				newHall.parent = transform;
+				newHall.localPosition = new Vector3(xCoord, yCoord, zCoord);
+				toGenerate.setPathNodes(createNodeCollection(newHall, toGenerate, pathBoxScale, pathNode));
+				toGenerate.visualRepresentation = newHall;
+				break;
+			}
+		}
+	}
+
 	public GridPosition getGridPosition(int xCoord, int zCoord){
 		return mapGrid [xCoord, zCoord];
 	}
@@ -314,10 +347,102 @@ public class Map : MonoBehaviour {
 		return newPathNode;
 	}
 	
+	public void toggleEditMode(){
+		if (!editMode) {
+			//pause the agents
+			foreach (PathfindingAgent currentAgent in pathAgents){
+				currentAgent.pauseAgent();
+			}
+			//We need the user to just be able to drag out their mouse to create a path, or be able to make a selection box over an area and turn that whole area into open space.
+			//Hallway mode and room mode, then.
+			//Hallway mode: left click deletes walls that the mouse cursor encounters. A per-frame check of the mouse cursor's position could easily skip over walls
+			//so we need to translate the mouse cursor's position into a grid position and adapt the step-based map generator to follow the direct path between the mouse's position each frame
+			//Right click deletes squares that the mouse encounters. Use the same method of getting a list of grid squares encountered as in the left click case. Call a method on each grid position
+			//that, for each position in the adjacency list, deletes the connection between it and the tile to be deleted. Then wipes out the deleted tile's adjacency list and sets its hallway type to none
+			//
+			//We also need a method that regenerates the visual representation of the map in a rectangle between the two coordinates provided.
+			//
+			//Room mode: Get grid position at mouse down, grid position at mouse up. Highlight all the affected tiles as the cursor is moved. On mouse up change the map in the affected coords
+			//into an open room in three passes (center tiles open, north/east/south/west rows/columns, corner bits), then do another pass along the edges where if there is a hall tile 
+			//opening into the edge we do an addExitToGridSquare from the inside of the edge towards the outside.
 
+			//TODO: Display markers for each square that is available to start building hallway on.
+			editMode = true;
+		} else {
+			foreach (PathfindingAgent currentAgent in pathAgents){
+				currentAgent.unpauseAgent();
+			}
+
+			editMode = false;
+		}
+	}
+
+	void buildHallwayAtClickedCoordinates ()
+	{
+		Vector3 mouseCoordsOnMap = new Vector3 ();
+		if (getMouseCoordsOnMap (ref mouseCoordsOnMap)) {
+			GridPosition clickedPosition = getMapPositionAtCoords (mouseCoordsOnMap);
+			if (clickedPosition != null) {
+				if (lastClickedValid && !lastClickedPosition.isEmpty () ) {
+					if (lastClickedPosition.xPosition != clickedPosition.xPosition || lastClickedPosition.zPosition != clickedPosition.zPosition) {
+						//TODO: Handle the situation where the user moves the mouse fast enough to skip over a grid position. Best done by making a line between 
+						//lastMouseCoordsOnMap and mouseCoordsOnMap and looping through the following code for each grid position that the line intersects.
+						Direction fromLastToCurrent = GridPosition.getDirectionBetweenAdjacentGridPositions (lastClickedPosition, clickedPosition);
+						lastClickedPosition.addExitToGridSquare (fromLastToCurrent);
+						clickedPosition.addExitToGridSquare (GridPosition.getOppositeDirection (fromLastToCurrent));
+						lastClickedPosition.setAdjacents (mapGrid);
+						clickedPosition.setAdjacents (mapGrid);
+						generateGridPosition(lastClickedPosition);
+						generateGridPosition(clickedPosition);
+					}
+				}
+				coordsClickedOn.text = "X: " + clickedPosition.xPosition + ", Z: " + clickedPosition.zPosition;
+				lastMouseCoordsOnMap = mouseCoordsOnMap;
+				lastClickedPosition = clickedPosition;
+				lastClickedValid = true;
+			} else {
+				lastClickedValid = false;
+			}
+		}
+	}
 
 	// Update is called once per frame
 	void Update () {
-	
+		if (editMode) {
+			if (Input.GetMouseButtonDown(0)){
+				buildHallwayAtClickedCoordinates ();
+			}else if (Input.GetMouseButton(0)){
+				buildHallwayAtClickedCoordinates ();
+			}else if (Input.GetMouseButtonUp(0)){
+				buildHallwayAtClickedCoordinates ();
+				lastClickedValid = false;
+			}
+		}
 	}
+
+	GridPosition getMapPositionAtCoords(Vector3 mapCoords){
+		int xCoord = (int)(mapCoords.x / hallwayGridUnitSize);
+		int zCoord = (int)(mapCoords.z / hallwayGridUnitSize * -1);
+		if ((xCoord >= 0 && xCoord < xDimension) && (zCoord >= 0 && zCoord < zDimension)) {
+			return mapGrid [xCoord, zCoord];
+		} else {
+			return null;
+		}
+	}
+	
+	bool getMouseCoordsOnMap(ref Vector3 mouseCoords){
+		Ray throughCamera = playerCamera.ScreenPointToRay (Input.mousePosition);
+		float distanceAlongRay;
+		bool rayIntersectsMap = mapBasePlane.Raycast(throughCamera, out distanceAlongRay);
+		if (rayIntersectsMap) {
+			mouseCoords = throughCamera.GetPoint (distanceAlongRay);
+			mouseCoords-= transform.position;
+			//TODO: Undo the rotation of the mapPlane on mouseCoords and then do math to figure out the actual grid coordinates in the event that the grid is rotated. For now assume it is not
+			//Vector3 mouseCoordsInXZPlane = new Vector3(mouseCoords.x, 0, mouseCoords.z);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 }
