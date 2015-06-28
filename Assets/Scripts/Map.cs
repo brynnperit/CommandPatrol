@@ -377,6 +377,17 @@ public class Map : MonoBehaviour {
 		}
 	}
 
+	void connectAdjacentGridPositions (GridPosition first, GridPosition second)
+	{
+		Direction fromLastToCurrent = GridPosition.getDirectionBetweenAdjacentGridPositions (first, second);
+		first.addExitToGridSquare (fromLastToCurrent);
+		second.addExitToGridSquare (GridPosition.getOppositeDirection (fromLastToCurrent));
+		first.setAdjacents (mapGrid);
+		second.setAdjacents (mapGrid);
+		generateGridPosition (first);
+		generateGridPosition (second);
+	}
+
 	void buildHallwayAtClickedCoordinates ()
 	{
 		Vector3 mouseCoordsOnMap = new Vector3 ();
@@ -384,16 +395,61 @@ public class Map : MonoBehaviour {
 			GridPosition clickedPosition = getMapPositionAtCoords (mouseCoordsOnMap);
 			if (clickedPosition != null) {
 				if (lastClickedValid && !lastClickedPosition.isEmpty () ) {
-					if (lastClickedPosition.xPosition != clickedPosition.xPosition || lastClickedPosition.zPosition != clickedPosition.zPosition) {
-						//TODO: Handle the situation where the user moves the mouse fast enough to skip over a grid position. Best done by making a line between 
+					int gridDistanceBetweenPositions = GridPosition.getGridDistanceBetweenGridPositions(clickedPosition, lastClickedPosition);
+					if (gridDistanceBetweenPositions == 1) {
+						connectAdjacentGridPositions(lastClickedPosition, clickedPosition);
+					}else if (gridDistanceBetweenPositions > 1){
+						//Handle the situation where the user moves the mouse fast enough to skip over a grid position. Best done by making a line between 
 						//lastMouseCoordsOnMap and mouseCoordsOnMap and looping through the following code for each grid position that the line intersects.
-						Direction fromLastToCurrent = GridPosition.getDirectionBetweenAdjacentGridPositions (lastClickedPosition, clickedPosition);
-						lastClickedPosition.addExitToGridSquare (fromLastToCurrent);
-						clickedPosition.addExitToGridSquare (GridPosition.getOppositeDirection (fromLastToCurrent));
-						lastClickedPosition.setAdjacents (mapGrid);
-						clickedPosition.setAdjacents (mapGrid);
-						generateGridPosition(lastClickedPosition);
-						generateGridPosition(clickedPosition);
+						float jumpDistance = 1.0f/gridDistanceBetweenPositions;
+						int jumpFraction = 1;
+						float fractionBetweenMousePositions = jumpDistance;
+						Vector3 nextPosition = Vector3.Lerp(lastMouseCoordsOnMap, mouseCoordsOnMap, fractionBetweenMousePositions);
+						GridPosition prevGridPosition = lastClickedPosition;
+						GridPosition nextGridPosition = getMapPositionAtCoords(nextPosition);
+						int newDistanceBetweenPositions = GridPosition.getGridDistanceBetweenGridPositions(prevGridPosition, nextGridPosition);
+						bool finished = false;
+						bool lastStep = false;
+						int loopSteps = 0;
+						do{
+							loopSteps++;
+							if (newDistanceBetweenPositions == 0){
+								fractionBetweenMousePositions += (jumpDistance/jumpFraction);
+							}else if (newDistanceBetweenPositions == 1){
+								connectAdjacentGridPositions(prevGridPosition, nextGridPosition);
+								jumpFraction = 1;
+								fractionBetweenMousePositions += jumpDistance;
+							}else if (newDistanceBetweenPositions > 1){
+								//If our line segment skips over one or more grid positions this will shorten it to a half, then 1/4, then 1/8, etc. until it's no longer skipping.
+								//If the line segment then doesn't cross any positions then it will advance it by one jumpdistance/jumpfraction and tries again.
+								jumpFraction *= 2;
+								fractionBetweenMousePositions -= (jumpDistance/jumpFraction);
+								lastStep = false;
+							}
+
+							if (jumpFraction == 1){
+								prevGridPosition = nextGridPosition;
+							}
+							if (fractionBetweenMousePositions > 0.999f && !lastStep){
+								fractionBetweenMousePositions = 1;
+								lastStep = true;
+							}else if (fractionBetweenMousePositions > 0.999f && lastStep){
+								finished = true;
+							}
+							nextPosition = Vector3.Lerp(lastMouseCoordsOnMap, mouseCoordsOnMap, fractionBetweenMousePositions);
+							nextGridPosition = getMapPositionAtCoords(nextPosition);
+
+							newDistanceBetweenPositions = GridPosition.getGridDistanceBetweenGridPositions(prevGridPosition, nextGridPosition);
+
+							//If the user drags their mouse absolutely perfectly along the diagonal such that it never passes into a horizontally or vertically adjacent square then this will
+							//prevent an infinite loop
+							if (loopSteps == 500){
+								loopSteps++;
+							}
+							if (loopSteps == 510){
+								break;
+							}
+						}while (!finished);
 					}
 				}
 				coordsClickedOn.text = "X: " + clickedPosition.xPosition + ", Z: " + clickedPosition.zPosition;

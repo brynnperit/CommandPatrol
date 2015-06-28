@@ -290,6 +290,10 @@ public class GridPosition : PriorityQueueNode, IMapPosition {
 		}
 	}
 
+	public static int getGridDistanceBetweenGridPositions(GridPosition first, GridPosition second){
+		return Mathf.Abs(first.xPosition - second.xPosition) + Mathf.Abs(first.zPosition - second.zPosition);
+	}
+
 	public Direction getDirectionOfAdjacentNonEmptyConnectedMapPosition(IMapPosition adjacentPosition){
 		if (adjacentPositions != null){
 			for (int dir = 0; dir < adjacentPositions.Length; dir++){
