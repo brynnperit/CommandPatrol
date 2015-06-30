@@ -23,7 +23,10 @@ public class Map : MonoBehaviour {
 	public float pathBoxScale;
 
 	public PathfindingAgent pathAgent;
+	public GuardController guardControl;
 	public PathfindingAgent[] pathAgents;
+
+	public GameObject enemyCollection;
 
 	bool lastClickedValid;
 	Vector3 lastMouseCoordsOnMap;
@@ -77,7 +80,8 @@ public class Map : MonoBehaviour {
 			}
 		}
 		pathAgents = new PathfindingAgent[1];
-		PathfindingAgent mainAgent = Instantiate (pathAgent, Vector3.zero, Quaternion.identity) as PathfindingAgent;
+		GuardController mainAgent = Instantiate (guardControl, Vector3.zero, Quaternion.identity) as GuardController;
+		mainAgent.enemyCollection = enemyCollection;
 		mainAgent.initialize (this, reallyinefficientGetRandomMapPosition (), reallyinefficientGetRandomMapPosition ());
 		pathAgents [0] = mainAgent;
 

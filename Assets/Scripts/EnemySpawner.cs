@@ -4,15 +4,13 @@ using System.Collections;
 public class EnemySpawner: MonoBehaviour {
 
 	public GameObject boundingPlane;
+	public Map ourMap;
 	public Transform enemy;
 	public int enemyCount;
-	public float yOffset;
+	public float enemySize;
 
 	// Use this for initialization
 	void Start () {
-		for (int currentEnemy = 0; currentEnemy < enemyCount; currentEnemy++) {
-			createEnemy();
-		}
 	}
 	
 	// Update is called once per frame
@@ -27,11 +25,12 @@ public class EnemySpawner: MonoBehaviour {
 	}
 
 	void createEnemy(){
-		float boundingPlaneXSize = boundingPlane.transform.localScale.x;
-		float boundingPlaneZSize = boundingPlane.transform.localScale.z;
-		float xPosition = Random.Range(-boundingPlaneXSize, boundingPlaneXSize) * 4.0f;
-		float zPosition = Random.Range(-boundingPlaneZSize, boundingPlaneZSize) * 4.0f;
-		Transform newEnemy = Instantiate(enemy, new Vector3 (xPosition, yOffset, zPosition), Quaternion.identity) as Transform;
+		GridPosition enemyPosition = ourMap.reallyinefficientGetRandomMapPosition ();
+		float xPosition = enemyPosition.visualRepresentation.position.x;
+		float yPosition = enemyPosition.visualRepresentation.position.y;
+		float zPosition =  enemyPosition.visualRepresentation.position.z;
+		Transform newEnemy = Instantiate(enemy, new Vector3 (xPosition, yPosition, zPosition), Quaternion.identity) as Transform;
+		newEnemy.localScale = new Vector3(enemySize, enemySize, enemySize);
 		newEnemy.parent = transform;
 	}
 }

@@ -21,7 +21,7 @@ public class PathfindingAgent : MonoBehaviour {
 
 	public float agentScale;
 
-	bool paused;
+	protected bool paused;
 
 	// Don't use this for initialization, it doesn't happen at the correct time.
 	void Start () {
@@ -103,7 +103,7 @@ public class PathfindingAgent : MonoBehaviour {
 	
 	// Update is called once per frame
 	//TODO: Move this into fixedUpdate, either make motion entirely physics and acceleration based or for now just calculate the velocity in each frame and hand that to the physics
-	void Update () {
+	protected void Update () {
 		if (!paused) {
 			if (subgridPath != null && subgridPath [currentPathNode] != null) {
 				float moveRemaining = agentSpeed * Time.deltaTime;
@@ -123,12 +123,6 @@ public class PathfindingAgent : MonoBehaviour {
 			}
 		}
 	}
-
-	void OnTriggerEnter(Collider other){
-
-	}
-
-
 
 	void setRandomDestination(){
 		setDestination(ourMap.reallyinefficientGetRandomMapPosition());
