@@ -105,26 +105,45 @@ public class PathfindingAgent : MonoBehaviour {
 	//TODO: Move this into fixedUpdate, either make motion entirely physics and acceleration based or for now just calculate the velocity in each frame and hand that to the physics
 	protected void Update () {
 		if (!paused) {
-			if (subgridPath != null && subgridPath [currentPathNode] != null) {
-				float moveRemaining = agentSpeed * Time.deltaTime;
-				while (moveRemaining > 0.01) {
-					Vector3 newPosition = Vector3.MoveTowards (transform.position, subgridPath [currentPathNode].position, moveRemaining);
-					Vector3 difference = newPosition - transform.position;
-					moveRemaining -= difference.magnitude;
-					transform.position = newPosition;
-					if (Vector3.Distance (transform.position, subgridPath [currentPathNode].position) < 0.01) {
-						if (currentPathNode == subgridPath.Length - 1) {
-							MoveToNextStep ();
-						} else {
-							currentPathNode++;
-						}
+			performMoveForFrame(agentSpeed * Time.deltaTime);
+		}
+	}
+
+	protected float performMoveForFrame(float moveRemaining){
+		if (subgridPath != null && subgridPath [currentPathNode] != null) {
+			while (moveRemaining > 0.01) {
+				moveRemaining = performMove(subgridPath [currentPathNode].position, moveRemaining);
+				if (Vector3.Distance (transform.position, subgridPath [currentPathNode].position) < 0.01) {
+					if (currentPathNode == subgridPath.Length - 1) {
+						MoveToNextStep ();
+					} else {
+						currentPathNode++;
 					}
 				}
 			}
 		}
+		return moveRemaining;
+	}
+
+	/// <summary>
+	/// Moves this object towards the destination by moveToPerform units. If moveToPerform is greater than the distance to the destination then the difference will be return
+	/// </summary>
+	/// <returns>Any leftover movement.</returns>
+	/// <param name="destination">Destination.</param>
+	/// <param name="moveToPerform">Move to perform.</param>
+	protected float performMove(Vector3 destination, float moveToPerform){
+		Vector3 newPosition = Vector3.MoveTowards (transform.position, destination, moveToPerform);
+		Vector3 difference = newPosition - transform.position;
+		moveToPerform -= difference.magnitude;
+		transform.position = newPosition;
+		return moveToPerform;
 	}
 
 	void setRandomDestination(){
 		setDestination(ourMap.reallyinefficientGetRandomMapPosition());
+	}
+
+	protected void fixedUpdate(){
+
 	}
 }

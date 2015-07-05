@@ -35,6 +35,7 @@ public class Map : MonoBehaviour {
 	public Camera playerCamera;
 
 	public Text coordsClickedOn;
+	public Text GuardAlertness;
 
 	Plane mapBasePlane;
 
@@ -82,10 +83,9 @@ public class Map : MonoBehaviour {
 		pathAgents = new PathfindingAgent[1];
 		GuardController mainAgent = Instantiate (guardControl, Vector3.zero, Quaternion.identity) as GuardController;
 		mainAgent.enemyCollection = enemyCollection;
+		mainAgent.guardAlertnessUIOutput = GuardAlertness;
 		mainAgent.initialize (this, reallyinefficientGetRandomMapPosition (), reallyinefficientGetRandomMapPosition ());
 		pathAgents [0] = mainAgent;
-
-
 
 	}
 
@@ -370,7 +370,8 @@ public class Map : MonoBehaviour {
 			//into an open room in three passes (center tiles open, north/east/south/west rows/columns, corner bits), then do another pass along the edges where if there is a hall tile 
 			//opening into the edge we do an addExitToGridSquare from the inside of the edge towards the outside.
 
-			//TODO: Display markers for each square that is available to start building hallway on.
+			//TODO: Add UI elements indicating which square the user's mouse is hovering over
+			//TODO: Test what happens when hallways that have a pathfinding agent currently in them are edited.
 			editMode = true;
 		} else {
 			foreach (PathfindingAgent currentAgent in pathAgents){
