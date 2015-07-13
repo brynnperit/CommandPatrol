@@ -22,11 +22,8 @@ public class Map : MonoBehaviour {
 	public Transform pathNode;
 	public float pathBoxScale;
 
-	public PathfindingAgent pathAgent;
-	public GuardController guardControl;
-	public PathfindingAgent[] pathAgents;
-
-	public GameObject enemyCollection;
+	public GuardCollection guardCollection;
+	public EnemyCollection enemyCollection;
 
 	bool lastClickedValid;
 	Vector3 lastMouseCoordsOnMap;
@@ -35,7 +32,6 @@ public class Map : MonoBehaviour {
 	public Camera playerCamera;
 
 	public Text coordsClickedOn;
-	public Text GuardAlertness;
 
 	Plane mapBasePlane;
 
@@ -80,12 +76,7 @@ public class Map : MonoBehaviour {
 				generateGridPosition(mapGrid[xPos, zPos]);
 			}
 		}
-		pathAgents = new PathfindingAgent[1];
-		GuardController mainAgent = Instantiate (guardControl, Vector3.zero, Quaternion.identity) as GuardController;
-		mainAgent.enemyCollection = enemyCollection;
-		mainAgent.guardAlertnessUIOutput = GuardAlertness;
-		mainAgent.initialize (this, reallyinefficientGetRandomMapPosition (), reallyinefficientGetRandomMapPosition ());
-		pathAgents [0] = mainAgent;
+
 
 	}
 
@@ -354,9 +345,8 @@ public class Map : MonoBehaviour {
 	public void toggleEditMode(){
 		if (!editMode) {
 			//pause the agents
-			foreach (PathfindingAgent currentAgent in pathAgents){
-				currentAgent.pauseAgent();
-			}
+			guardCollection.pause();
+			enemyCollection.pause();
 			//We need the user to just be able to drag out their mouse to create a path, or be able to make a selection box over an area and turn that whole area into open space.
 			//Hallway mode and room mode, then.
 			//Hallway mode: left click deletes walls that the mouse cursor encounters. A per-frame check of the mouse cursor's position could easily skip over walls
@@ -374,9 +364,8 @@ public class Map : MonoBehaviour {
 			//TODO: Test what happens when hallways that have a pathfinding agent currently in them are edited.
 			editMode = true;
 		} else {
-			foreach (PathfindingAgent currentAgent in pathAgents){
-				currentAgent.unpauseAgent();
-			}
+			guardCollection.unpause();
+			enemyCollection.unpause();
 
 			editMode = false;
 		}
@@ -406,6 +395,9 @@ public class Map : MonoBehaviour {
 					}else if (gridDistanceBetweenPositions > 1){
 						//Handle the situation where the user moves the mouse fast enough to skip over a grid position. Best done by making a line between 
 						//lastMouseCoordsOnMap and mouseCoordsOnMap and looping through the following code for each grid position that the line intersects.
+
+						//TODO: Replace the entire section of code below with math that just determines which grid the mouse went through by making a line between the current and previous 
+						//mouse positions, doing math to figure out which side of the line the relevant corner is on, etc.
 						float jumpDistance = 1.0f/gridDistanceBetweenPositions;
 						int jumpFraction = 1;
 						float fractionBetweenMousePositions = jumpDistance;
