@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class GuardController : PathfindingAgent {
 
-	public GameObject enemyCollection;
+	public EnemyCollection enemyCollection;
 	int transformArrayOffset = 1;
 	public float fireRate;
 	float fireTimer = 0;
@@ -31,13 +31,17 @@ public class GuardController : PathfindingAgent {
 
 	}
 
-	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GameObject enemyCollection, Text guardAlertnessUIOutput){
-		base.initialize(parentMap, initialGridPosition, initialDestination, agentScale);
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection enclosingCollection, EnemyCollection enemyCollection, Text guardAlertnessUIOutput){
+		base.initialize(parentMap, initialGridPosition, initialDestination, agentScale, enclosingCollection);
 		this.enemyCollection = enemyCollection;
 		this.guardAlertnessUIOutput = guardAlertnessUIOutput;
 		visibleEnemies = new Dictionary<Transform,float> ();
 		moveMode = GuardMovementMode.patrol;
 		UpdateGroupVisibility ();
+	}
+
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, EnemyCollection enemyCollection, Text guardAlertnessUIOutput){
+		initialize(parentMap, initialGridPosition, initialDestination, agentScale, null, enemyCollection, guardAlertnessUIOutput);
 	}
 	
 	// Update is called once per frame
@@ -122,7 +126,6 @@ public class GuardController : PathfindingAgent {
 			Destroy (other.gameObject);
 		}
 	}
-	
 }
 
 public enum GuardVisibilityThresholds{ stare=33, moveTowards=66, shoot=100};

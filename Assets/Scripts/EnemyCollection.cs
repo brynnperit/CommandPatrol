@@ -9,7 +9,8 @@ public class EnemyCollection: PathfindingAgentCollection {
 	
 	override protected void createAgent(){
 		EnemyController newEnemy = Instantiate (enemy, Vector3.zero, Quaternion.identity) as EnemyController;
-		newEnemy.initialize (ourMap, ourMap.reallyinefficientGetRandomMapPosition (), ourMap.reallyinefficientGetRandomMapPosition (), enemyScale, guardCollection.gameObject);
+		newEnemy.initialize (ourMap, ourMap.reallyinefficientGetRandomMapPosition (), ourMap.reallyinefficientGetRandomMapPosition (), enemyScale, guardCollection);
 		newEnemy.transform.parent = transform;
+		agentList.Add (newEnemy);
 	}
 }

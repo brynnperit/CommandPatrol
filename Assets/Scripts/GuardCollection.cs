@@ -13,7 +13,7 @@ public class GuardCollection : PathfindingAgentCollection {
 
 	override protected void createAgent(){
 		GuardController newGuard = Instantiate (guard, Vector3.zero, Quaternion.identity) as GuardController;
-		newGuard.initialize (ourMap, ourMap.reallyinefficientGetRandomMapPosition (), ourMap.reallyinefficientGetRandomMapPosition (), guardScale, enemyCollection.gameObject, GuardAlertness);
+		newGuard.initialize (ourMap, ourMap.reallyinefficientGetRandomMapPosition (), ourMap.reallyinefficientGetRandomMapPosition (), guardScale, enemyCollection, GuardAlertness);
 		newGuard.transform.parent = transform;
 		agentList.Add (newGuard);
 	}

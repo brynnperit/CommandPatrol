@@ -18,6 +18,8 @@ public abstract class PathfindingAgent : MonoBehaviour {
 
 	public Transform pathEndMarker;
 
+	PathfindingAgentCollection enclosingCollection;
+
 	GameObject endMarker;
 
 	protected float agentScale;
@@ -30,10 +32,15 @@ public abstract class PathfindingAgent : MonoBehaviour {
 	}
 
 	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale){
+		initialize (parentMap, initialGridPosition, initialDestination, agentScale, null);
+	}
+
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, PathfindingAgentCollection enclosingCollection){
 		ourMap = parentMap;
 		subgridPath = new Transform[3];
 		paused = false;
 		this.agentScale = agentScale;
+		this.enclosingCollection = enclosingCollection;
 		transform.localScale = new Vector3 (agentScale, agentScale, agentScale);
 		resetPosition (initialGridPosition);
 		setDestination (initialDestination);
@@ -206,9 +213,12 @@ public abstract class PathfindingAgent : MonoBehaviour {
 
 	}
 
-	void OnDestroy(){
+	protected void OnDestroy(){
 		if (endMarker != null) {
 			Destroy (endMarker);
+		}
+		if (enclosingCollection != null) {
+			enclosingCollection.removeAgent(this);
 		}
 	}
 }

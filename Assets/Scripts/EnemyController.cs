@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class EnemyController : PathfindingAgent {
 
-	public GameObject guardCollection;
+	public GuardCollection guardCollection;
 	int transformArrayOffset = 1;
 	public float fireRate;
 	float fireTimer = 0;
@@ -16,7 +16,7 @@ public class EnemyController : PathfindingAgent {
 	public Transform pathfindingNodeCollection;
 
 	public string guardTag;
-
+	
 	GridPosition ourPosition;
 	EnemyMovementMode moveMode;
 
@@ -31,12 +31,16 @@ public class EnemyController : PathfindingAgent {
 
 	}
 
-	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GameObject guardCollection){
-		base.initialize (parentMap, initialGridPosition, initialDestination, agentScale);
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, EnemyCollection enclosingCollection, GuardCollection guardCollection){
+		base.initialize (parentMap, initialGridPosition, initialDestination, agentScale, enclosingCollection);
 		this.guardCollection = guardCollection;
 		visibleGuards = new Dictionary<Transform,float> ();
 		moveMode = EnemyMovementMode.patrol;
 		UpdateGroupVisibility ();
+	}
+
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection guardCollection){
+		initialize (parentMap, initialGridPosition, initialDestination, agentScale, null, guardCollection);
 	}
 	
 	// Update is called once per frame
@@ -79,7 +83,6 @@ public class EnemyController : PathfindingAgent {
 
 	
 	//TODO: Make the enemies have their own alert meters for the guards, where upon seeing a guard they will move to break line of sight as quickly as possible.
-	//TODO: Make the enemies move around the map randomly.
 	void FixedUpdate () {
 		base.fixedUpdate ();
 		if (!paused) {
@@ -104,7 +107,7 @@ public class EnemyController : PathfindingAgent {
 //			Destroy (other.gameObject);
 //		}
 	}
-
+	
 }
 
 public enum EnemyVisibilityThresholds{ stare=33, moveTowards=66, shoot=100};

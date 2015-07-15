@@ -40,6 +40,10 @@ public abstract class PathfindingAgentCollection : MonoBehaviour {
 			}
 		}
 	}
+
+	public void removeAgent(PathfindingAgent toRemove){
+		agentList.Remove (toRemove);
+	}
 	
 	protected abstract void createAgent();
 }
