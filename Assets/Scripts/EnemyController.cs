@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 public class EnemyController : PathfindingAgent {
 
-	public GuardCollection guardCollection;
+	GuardCollection guardCollection;
+    FurnitureCollection furnitureCollection;
 	int transformArrayOffset = 1;
 	public float fireRate;
 	float fireTimer = 0;
@@ -16,8 +17,6 @@ public class EnemyController : PathfindingAgent {
 	public Transform pathfindingNodeCollection;
 
 	public string guardTag;
-	
-	GridPosition ourPosition;
 	EnemyMovementMode moveMode;
 
 	public Text enemyAlertnessUIOutput;
@@ -31,16 +30,17 @@ public class EnemyController : PathfindingAgent {
 
 	}
 
-	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, EnemyCollection enclosingCollection, GuardCollection guardCollection){
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, EnemyCollection enclosingCollection, GuardCollection guardCollection, FurnitureCollection furnitureCollection){
 		base.initialize (parentMap, initialGridPosition, initialDestination, agentScale, enclosingCollection);
 		this.guardCollection = guardCollection;
+        this.furnitureCollection = furnitureCollection;
 		visibleGuards = new Dictionary<Transform,float> ();
 		moveMode = EnemyMovementMode.patrol;
 		UpdateGroupVisibility ();
 	}
 
-	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection guardCollection){
-		initialize (parentMap, initialGridPosition, initialDestination, agentScale, null, guardCollection);
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection guardCollection, FurnitureCollection furnitureCollection){
+		initialize (parentMap, initialGridPosition, initialDestination, agentScale, null, guardCollection, furnitureCollection);
 	}
 	
 	// Update is called once per frame

@@ -5,7 +5,8 @@ using System.Collections.Generic;
 
 public class GuardController : PathfindingAgent {
 
-	public EnemyCollection enemyCollection;
+	EnemyCollection enemyCollection;
+    FurnitureCollection furnitureCollection;
 	int transformArrayOffset = 1;
 	public float fireRate;
 	float fireTimer = 0;
@@ -15,14 +16,19 @@ public class GuardController : PathfindingAgent {
 	Vector3 mostNoticedEnemyLastPosition;
 	public Transform pathfindingNodeCollection;
 
+    float needsTimer = 0;
+    public float maxNeedTimer;
+    public float needsThreshold;
+    bool onBreak = false;
+
 	public string enemyTag;
 
-	GridPosition ourPosition;
 	GuardMovementMode moveMode;
 
 	public Text guardAlertnessUIOutput;
 
 	public float guardPerception;
+    public float guardBreakPerceptionModifier;
 
 	Dictionary<Transform,float> visibleEnemies;
 
@@ -31,7 +37,8 @@ public class GuardController : PathfindingAgent {
 
 	}
 
-	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection enclosingCollection, EnemyCollection enemyCollection, Text guardAlertnessUIOutput){
+    //TODO: Figure out if we should be using the new keyword here to hide the base initialize methods since they won't work for a guard and then do the same for enemies, etc.
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection enclosingCollection, EnemyCollection enemyCollection, FurnitureCollection furnitureCollection, Text guardAlertnessUIOutput){
 		base.initialize(parentMap, initialGridPosition, initialDestination, agentScale, enclosingCollection);
 		this.enemyCollection = enemyCollection;
 		this.guardAlertnessUIOutput = guardAlertnessUIOutput;
@@ -40,15 +47,21 @@ public class GuardController : PathfindingAgent {
 		UpdateGroupVisibility ();
 	}
 
-	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, EnemyCollection enemyCollection, Text guardAlertnessUIOutput){
-		initialize(parentMap, initialGridPosition, initialDestination, agentScale, null, enemyCollection, guardAlertnessUIOutput);
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, EnemyCollection enemyCollection, FurnitureCollection furnitureCollection, Text guardAlertnessUIOutput){
+		initialize(parentMap, initialGridPosition, initialDestination, agentScale, null, enemyCollection, furnitureCollection, guardAlertnessUIOutput);
 	}
 	
 	// Update is called once per frame
 	new void Update () {
 		if (!paused) {
+            needsTimer -= Time.deltaTime;
+            if (needsTimer < needsThreshold)
+            {
+                onBreak = true;
+            }
+
 			UpdateGroupVisibility ();
-			float mostNoticedEnemyVisibility = 0; 
+			float mostNoticedEnemyVisibility; 
 			if (mostNoticedEnemy != null) {
 				mostNoticedEnemyVisibility = visibleEnemies [mostNoticedEnemy];
 			}else{
@@ -63,7 +76,12 @@ public class GuardController : PathfindingAgent {
 				//TODO: When transitioning from investigate mode back into patrol mode the guard should pathfind back to wherever it left off on its patrol. Right now it moves in a straight line that can clip through walls
 				moveMode = GuardMovementMode.patrol;
 			}
-			if (moveMode == GuardMovementMode.patrol){
+            if (moveMode == GuardMovementMode.patrol && onBreak == true)
+            {
+                moveMode = GuardMovementMode.takeBreak;
+
+            }
+			if (moveMode == GuardMovementMode.patrol || moveMode == GuardMovementMode.takeBreak){
 				base.Update ();
 			}else if (moveMode == GuardMovementMode.investigate){
 				float moveRemaining = agentSpeed * Time.deltaTime;
@@ -129,4 +147,4 @@ public class GuardController : PathfindingAgent {
 }
 
 public enum GuardVisibilityThresholds{ stare=33, moveTowards=66, shoot=100};
-public enum GuardMovementMode{ patrol=0, investigate=1};
+public enum GuardMovementMode{ patrol=0, investigate=1, takeBreak=2};

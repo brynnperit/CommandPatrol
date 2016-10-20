@@ -24,6 +24,7 @@ public class Map : MonoBehaviour {
 
 	public GuardCollection guardCollection;
 	public EnemyCollection enemyCollection;
+    public FurnitureCollection furnitureCollection;
 
 	bool lastClickedValid;
 	Vector3 lastMouseCoordsOnMap;
@@ -347,6 +348,7 @@ public class Map : MonoBehaviour {
 			//pause the agents
 			guardCollection.pause();
 			enemyCollection.pause();
+            furnitureCollection.pause();
 			//We need the user to just be able to drag out their mouse to create a path, or be able to make a selection box over an area and turn that whole area into open space.
 			//Hallway mode and room mode, then.
 			//Hallway mode: left click deletes walls that the mouse cursor encounters. A per-frame check of the mouse cursor's position could easily skip over walls
@@ -366,6 +368,7 @@ public class Map : MonoBehaviour {
 		} else {
 			guardCollection.unpause();
 			enemyCollection.unpause();
+            furnitureCollection.unpause();
 
 			editMode = false;
 		}
