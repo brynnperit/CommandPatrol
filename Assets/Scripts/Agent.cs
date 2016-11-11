@@ -37,6 +37,11 @@ public abstract class Agent : MonoBehaviour
         resetPosition(initialGridPosition);
     }
 
+    public IMapPosition getPosition()
+    {
+        return ourPosition;
+    }
+
     public void resetPosition(IMapPosition toSet)
     {
         resetPosition(toSet, toSet.getCenterPathNode());

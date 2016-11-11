@@ -7,14 +7,15 @@ public abstract class AgentCollection : MonoBehaviour {
 	public Map ourMap;
 	public int agentCount;
 
-	protected List<Agent> agentList;
-	
-	// Use this for initialization
-	void Start () {
-		agentList = new List<Agent> ();
-	}
-	
-	public void pause(){
+    protected List<Agent> agentList;
+
+    // Use this for initialization
+    protected void Start()
+    {
+        agentList = new List<Agent>();
+    }
+
+    public void pause(){
 		foreach (Agent toPause in agentList) {
 			if (toPause != null){
 				toPause.pauseAgent();

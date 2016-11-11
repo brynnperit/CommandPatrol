@@ -29,12 +29,23 @@ public abstract class PathfindingAgent : Agent {
 	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, AgentCollection enclosingCollection){
         base.initialize(parentMap, initialGridPosition, agentScale, enclosingCollection);
         subgridPath = new Transform[3];
-		setDestination (initialDestination);
+        //If the initial destination isn't valid just set a random one.
+        if (!setDestination(initialDestination))
+        {
+            setRandomDestination();
+        }
+
 	}
 
-	public void setDestination(GridPosition destinationToSet){
+    /// <summary>
+    /// Sets the agent's destination to the provided gridPosition, returning false if that destination is the same as our current position
+    /// and returning true otherwise
+    /// </summary>
+    /// <param name="destinationToSet">The agent's new destination</param>
+    /// <returns>False if the agent is already at the provided position, true otherwise</returns>
+	public bool setDestination(IMapPosition destinationToSet){
 		if (destinationToSet.xPosition == ourPosition.xPosition && destinationToSet.zPosition == ourPosition.zPosition) {
-			setRandomDestination();
+            return false;
 		} else {
 			destination = destinationToSet;
 			pathToDestination = Map.getPathToPosition (ourPosition, destination, ourMap.getMapSize ());
@@ -45,13 +56,14 @@ public abstract class PathfindingAgent : Agent {
 			
 			stepAlongPathToDestination = -1;
 			MoveToNextStep();
-
-		}
+            return true;
+        }
+        
 	}
 
-	void MoveToNextStep ()
+	bool MoveToNextStep ()
 	{
-
+        bool hasNextStep = true;
 		//If the array size 12, length is 12, final position is 11 which equals length -1, < that is 10 and below. < -2 below that is 9 and below
 		if (stepAlongPathToDestination < pathToDestination.Length - 2) {
 			IMapPosition precedingPosition = ourPosition;
@@ -74,9 +86,10 @@ public abstract class PathfindingAgent : Agent {
 		} else {
 			//If we hit this point then we're in the final grid square and have hit subgridPath[subgridPath.Length - 1], which is the end marker as seen just above
 			GameObject oldEndMarker = endMarker;
-			setRandomDestination ();
 			Destroy (oldEndMarker);
+            hasNextStep = false;
 		}
+        return hasNextStep;
 	}
 
     // Update is called once per frame
@@ -84,30 +97,34 @@ public abstract class PathfindingAgent : Agent {
     protected new void Update()
     {
         base.Update();
-        if (!paused)
-        {
-            performMoveForFrame(agentSpeed * Time.deltaTime);
-        }
+        
     }
 
     protected float performMoveForFrame(float moveRemaining){
 		if (subgridPath != null && subgridPath [currentPathNode] != null) {
-			while (moveRemaining > 0.01) {
+            //TODO: This 0.01 is the magic number for movement precision. Move it, along with all other occurrences of it, somewhere sensible
+            bool hasNextStep = true;
+            while (moveRemaining > 0.01 && hasNextStep) {
 				moveRemaining = performMove(subgridPath [currentPathNode].position, moveRemaining);
 				if (Vector3.Distance (transform.position, subgridPath [currentPathNode].position) < 0.01) {
 					if (currentPathNode == subgridPath.Length - 1) {
-						MoveToNextStep ();
+						hasNextStep = MoveToNextStep ();
 					} else {
 						currentPathNode++;
 					}
 				}
 			}
-		}
+        }
+        //TODO: Find out why uncommenting the following lines makes the agents stop at their destinations and not make new ones.
+        //else
+        //{
+        //    moveRemaining = 0;
+        //}
 		return moveRemaining;
 	}
 
 	/// <summary>
-	/// Moves this object towards the destination by moveToPerform units. If moveToPerform is greater than the distance to the destination then the difference will be return
+	/// Moves this object towards the destination by moveToPerform units. If moveToPerform is greater than the distance to the destination then the difference will be returned
 	/// </summary>
 	/// <returns>Any leftover movement.</returns>
 	/// <param name="destination">Destination.</param>
@@ -120,8 +137,16 @@ public abstract class PathfindingAgent : Agent {
 		return moveToPerform;
 	}
 
-	void setRandomDestination(){
-		setDestination(ourMap.reallyinefficientGetRandomMapPosition());
+	protected void setRandomDestination(){
+        //If the random map position is the same as our current map
+        if (ourMap.getMapSize() != 1)
+        {
+            bool destinationValid = false;
+            while (!destinationValid)
+            {
+                destinationValid = setDestination(ourMap.reallyinefficientGetRandomMapPosition());
+            }
+        }
 	}
 
     protected new void fixedUpdate()

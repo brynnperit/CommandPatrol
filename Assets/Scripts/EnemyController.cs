@@ -59,9 +59,19 @@ public class EnemyController : PathfindingAgent {
 
 			moveMode = EnemyMovementMode.patrol;
 
-			if (moveMode == EnemyMovementMode.patrol){
-				base.Update ();
-			}
+            float moveRemaining = agentSpeed * Time.deltaTime;
+            while (moveRemaining > 0.01)
+            {
+                if (moveMode == EnemyMovementMode.patrol)
+                {
+                    base.Update();
+                    moveRemaining = performMoveForFrame(moveRemaining);
+                    if (moveRemaining > 0.01)
+                    {
+                        setRandomDestination();
+                    }
+                }
+            }
 		}
 
 	}

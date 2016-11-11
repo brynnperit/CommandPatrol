@@ -41,6 +41,7 @@ public class GuardController : PathfindingAgent {
 	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection enclosingCollection, EnemyCollection enemyCollection, FurnitureCollection furnitureCollection, Text guardAlertnessUIOutput){
 		base.initialize(parentMap, initialGridPosition, initialDestination, agentScale, enclosingCollection);
 		this.enemyCollection = enemyCollection;
+        this.furnitureCollection = furnitureCollection;
 		this.guardAlertnessUIOutput = guardAlertnessUIOutput;
 		visibleEnemies = new Dictionary<Transform,float> ();
 		moveMode = GuardMovementMode.patrol;
@@ -54,7 +55,9 @@ public class GuardController : PathfindingAgent {
 	// Update is called once per frame
 	new void Update () {
 		if (!paused) {
-            needsTimer -= Time.deltaTime;
+            //NEXTSTEP
+            //TODO: Once the needs timer is actually ready uncomment the following line
+            //needsTimer -= Time.deltaTime;
             if (needsTimer < needsThreshold)
             {
                 onBreak = true;
@@ -79,25 +82,60 @@ public class GuardController : PathfindingAgent {
             if (moveMode == GuardMovementMode.patrol && onBreak == true)
             {
                 moveMode = GuardMovementMode.takeBreak;
-
+                //Path to all furniture objects, determine the path length of the closest one, and then path to it
+                FurnitureController closestFurniture = furnitureCollection.getClosestFurniture(this, FurnitureType.rest);
+                setDestination(closestFurniture.getPosition());
             }
-			if (moveMode == GuardMovementMode.patrol || moveMode == GuardMovementMode.takeBreak){
-				base.Update ();
-			}else if (moveMode == GuardMovementMode.investigate){
-				float moveRemaining = agentSpeed * Time.deltaTime;
-				moveRemaining = performMove(mostNoticedEnemyLastPosition, moveRemaining);
-				if (hasLineOfSight(mostNoticedEnemy)){
-					moveRemaining = performMove (mostNoticedEnemy.position, moveRemaining);
+            float moveRemaining = agentSpeed * Time.deltaTime;
+            while (moveRemaining > 0.01)
+            {
+                if (moveMode == GuardMovementMode.patrol)
+                {
+                    base.Update();
 
-					if (moveRemaining > 0.001){
-						visibleEnemies.Remove(mostNoticedEnemy);
-						Destroy(mostNoticedEnemy.gameObject);
-						mostNoticedEnemy = null;
-					}
-				}else{
-					performMoveForFrame(moveRemaining);
-				}
-			}
+                    moveRemaining = performMoveForFrame(moveRemaining);
+                    if (moveRemaining > 0.01)
+                    {
+                        setRandomDestination();
+                    }
+                }
+                else if (moveMode == GuardMovementMode.takeBreak)
+                {
+                    base.Update();
+
+                    moveRemaining = performMoveForFrame(moveRemaining);
+                    if (moveRemaining > 0.01)
+                    {
+                        //We're at the destination! Time to go on break
+                        moveMode = GuardMovementMode.onBreak;
+                    }
+                }
+                else if (moveMode == GuardMovementMode.onBreak)
+                {
+                    //NEXTSTEP
+                    //TODO: Make the guard take their break and replenish energy!
+
+                }
+                else if (moveMode == GuardMovementMode.investigate)
+                {
+                    moveRemaining = performMove(mostNoticedEnemyLastPosition, moveRemaining);
+                    if (hasLineOfSight(mostNoticedEnemy))
+                    {
+                        moveRemaining = performMove(mostNoticedEnemy.position, moveRemaining);
+
+                        if (moveRemaining > 0.001)
+                        {
+                            visibleEnemies.Remove(mostNoticedEnemy);
+                            Destroy(mostNoticedEnemy.gameObject);
+                            mostNoticedEnemy = null;
+                        }
+                    }
+                    else
+                    {
+                        performMoveForFrame(moveRemaining);
+                    }
+                }
+            }
 		}
 
 	}
@@ -119,7 +157,6 @@ public class GuardController : PathfindingAgent {
 
 	
 	//TODO: Make the enemies have their own alert meters for the guards, where upon seeing a guard they will move to break line of sight as quickly as possible.
-	//TODO: Make the enemies move around the map randomly.
 	void FixedUpdate () {
 		base.fixedUpdate ();
 		if (!paused) {
@@ -147,4 +184,4 @@ public class GuardController : PathfindingAgent {
 }
 
 public enum GuardVisibilityThresholds{ stare=33, moveTowards=66, shoot=100};
-public enum GuardMovementMode{ patrol=0, investigate=1, takeBreak=2};
+public enum GuardMovementMode{ patrol=0, investigate=1, takeBreak=2, onBreak=3};

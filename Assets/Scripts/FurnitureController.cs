@@ -25,6 +25,11 @@ public class FurnitureController : Agent {
     {
         throw new NotImplementedException();
     }
+
+    public FurnitureType getFurnitureType()
+    {
+        return ourFurnitureType;
+    }
 }
 
-public enum FurnitureType { couch=0 };
+public enum FurnitureType { rest=0 };
