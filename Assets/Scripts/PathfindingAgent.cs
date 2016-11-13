@@ -58,7 +58,6 @@ public abstract class PathfindingAgent : Agent {
 			MoveToNextStep();
             return true;
         }
-        
 	}
 
 	bool MoveToNextStep ()
@@ -101,6 +100,7 @@ public abstract class PathfindingAgent : Agent {
     }
 
     protected float performMoveForFrame(float moveRemaining){
+        //TODO: Find out what this line actually does/why it is here
 		if (subgridPath != null && subgridPath [currentPathNode] != null) {
             //TODO: This 0.01 is the magic number for movement precision. Move it, along with all other occurrences of it, somewhere sensible
             bool hasNextStep = true;

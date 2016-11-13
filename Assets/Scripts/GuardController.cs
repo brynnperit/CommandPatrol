@@ -15,11 +15,12 @@ public class GuardController : PathfindingAgent {
 	Transform mostNoticedEnemy;
 	Vector3 mostNoticedEnemyLastPosition;
 	public Transform pathfindingNodeCollection;
+    protected RestFurnitureController targetRestFurniture;
 
     float needsTimer = 0;
-    public float maxNeedTimer;
+    public float maxNeedsTimer;
     public float needsThreshold;
-    bool onBreak = false;
+    bool takeBreak = false;
 
 	public string enemyTag;
 
@@ -54,38 +55,36 @@ public class GuardController : PathfindingAgent {
 	
 	// Update is called once per frame
 	new void Update () {
-		if (!paused) {
-            //NEXTSTEP
-            //TODO: Once the needs timer is actually ready uncomment the following line
-            //needsTimer -= Time.deltaTime;
+		if (!paused)
+        {
+            //Decrease the time until the guard needs to take a break unless they are already actually resting
+            if (moveMode != GuardMovementMode.onBreak)
+            {
+                needsTimer -= Time.deltaTime;
+            }
             if (needsTimer < needsThreshold)
             {
-                onBreak = true;
+                takeBreak = true;
             }
 
-			UpdateGroupVisibility ();
-			float mostNoticedEnemyVisibility; 
-			if (mostNoticedEnemy != null) {
-				mostNoticedEnemyVisibility = visibleEnemies [mostNoticedEnemy];
-			}else{
-				mostNoticedEnemyVisibility = 0;
-			}
-			if (guardAlertnessUIOutput != null){
-				guardAlertnessUIOutput.text = mostNoticedEnemyVisibility.ToString();
-			}
-			if (mostNoticedEnemyVisibility >= (int)GuardVisibilityThresholds.moveTowards) {
-				moveMode = GuardMovementMode.investigate;
-			}else{
-				//TODO: When transitioning from investigate mode back into patrol mode the guard should pathfind back to wherever it left off on its patrol. Right now it moves in a straight line that can clip through walls
-				moveMode = GuardMovementMode.patrol;
-			}
-            if (moveMode == GuardMovementMode.patrol && onBreak == true)
+            //I'm not liking how many method calls in here I'm making the are full of side effects. 
+            //Update group visibility sets the most noticed enemy
+            UpdateGroupVisibility();
+            float mostNoticedEnemyVisibility;
+            if (mostNoticedEnemy != null)
             {
-                moveMode = GuardMovementMode.takeBreak;
-                //Path to all furniture objects, determine the path length of the closest one, and then path to it
-                FurnitureController closestFurniture = furnitureCollection.getClosestFurniture(this, FurnitureType.rest);
-                setDestination(closestFurniture.getPosition());
+                mostNoticedEnemyVisibility = visibleEnemies[mostNoticedEnemy];
             }
+            else
+            {
+                mostNoticedEnemyVisibility = 0;
+            }
+            if (guardAlertnessUIOutput != null)
+            {
+                guardAlertnessUIOutput.text = mostNoticedEnemyVisibility.ToString();
+            }
+            determineInitialMovementMode(mostNoticedEnemyVisibility);
+
             float moveRemaining = agentSpeed * Time.deltaTime;
             while (moveRemaining > 0.01)
             {
@@ -94,6 +93,8 @@ public class GuardController : PathfindingAgent {
                     base.Update();
 
                     moveRemaining = performMoveForFrame(moveRemaining);
+                    //If the guard completes its patrol move and has movement left to do then it reached its destination
+                    //and needs a new one
                     if (moveRemaining > 0.01)
                     {
                         setRandomDestination();
@@ -112,8 +113,21 @@ public class GuardController : PathfindingAgent {
                 }
                 else if (moveMode == GuardMovementMode.onBreak)
                 {
-                    //NEXTSTEP
-                    //TODO: Make the guard take their break and replenish energy!
+                    float timeLeft = moveRemaining / agentSpeed;
+                    float restSpeed = targetRestFurniture.getRestfulnessValue();
+                    //If we finished resting this frame
+                    if (((timeLeft * restSpeed) + needsTimer) > maxNeedsTimer){
+                        needsTimer = maxNeedsTimer;
+                        timeLeft = timeLeft - ((maxNeedsTimer - needsTimer) / restSpeed);
+                        takeBreak = false;
+                        moveMode = GuardMovementMode.patrol;
+                        setRandomDestination();
+                    }else{
+                        //We didn't finish resting this frame, rest as hard as possible with the time left!
+                        timeLeft = 0;
+                        needsTimer = needsTimer + (timeLeft * restSpeed);
+                    }
+                    moveRemaining = timeLeft * agentSpeed;
 
                 }
                 else if (moveMode == GuardMovementMode.investigate)
@@ -136,11 +150,34 @@ public class GuardController : PathfindingAgent {
                     }
                 }
             }
-		}
+        }
 
-	}
+    }
 
-	void UpdateGroupVisibility(){
+    private void determineInitialMovementMode(float mostNoticedEnemyVisibility)
+    {
+        if (!(moveMode == GuardMovementMode.onBreak))
+        {
+            if (mostNoticedEnemyVisibility >= (int)GuardVisibilityThresholds.moveTowards)
+            {
+                moveMode = GuardMovementMode.investigate;
+            }
+            else
+            {
+                //TODO: When transitioning from investigate mode back into patrol mode the guard should pathfind back to wherever it left off on its patrol. Right now it moves in a straight line that can clip through walls
+                moveMode = GuardMovementMode.patrol;
+            }
+            if (moveMode == GuardMovementMode.patrol && takeBreak == true)
+            {
+                moveMode = GuardMovementMode.takeBreak;
+                //Path to all furniture objects, determine the path length of the closest one, and then path to it
+                targetRestFurniture = (RestFurnitureController)furnitureCollection.getClosestFurniture(this, FurnitureType.rest);
+                setDestination(targetRestFurniture.getPosition());
+            }
+        }
+    }
+
+    void UpdateGroupVisibility(){
 		if (enemyCollection != null) {
 			mostNoticedEnemy = base.UpdateGroupVisibility (enemyCollection.GetComponentsInChildren<Transform> (), transformArrayOffset, visibleEnemies);
 			if (mostNoticedEnemy != null) {
