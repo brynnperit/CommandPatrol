@@ -17,16 +17,18 @@ public class GuardController : PathfindingAgent {
 	public Transform pathfindingNodeCollection;
     protected RestFurnitureController targetRestFurniture;
 
-    float needsTimer = 0;
+    float needsTimer;
     public float maxNeedsTimer;
     public float needsThreshold;
     bool takeBreak = false;
 
 	public string enemyTag;
 
+    GuardMovementMode moveModeBeforeInvestigation;
 	GuardMovementMode moveMode;
 
-	public Text guardAlertnessUIOutput;
+	Text guardAlertnessUIOutput;
+    Text guardRestfulnessUIOutput;
 
 	public float guardPerception;
     public float guardBreakPerceptionModifier;
@@ -39,18 +41,21 @@ public class GuardController : PathfindingAgent {
 	}
 
     //TODO: Figure out if we should be using the new keyword here to hide the base initialize methods since they won't work for a guard and then do the same for enemies, etc.
-	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection enclosingCollection, EnemyCollection enemyCollection, FurnitureCollection furnitureCollection, Text guardAlertnessUIOutput){
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, GuardCollection enclosingCollection, EnemyCollection enemyCollection, FurnitureCollection furnitureCollection, Text guardAlertnessUIOutput, Text guardRestfulnessUIOutput){
 		base.initialize(parentMap, initialGridPosition, initialDestination, agentScale, enclosingCollection);
 		this.enemyCollection = enemyCollection;
         this.furnitureCollection = furnitureCollection;
 		this.guardAlertnessUIOutput = guardAlertnessUIOutput;
+        this.guardRestfulnessUIOutput = guardRestfulnessUIOutput;
 		visibleEnemies = new Dictionary<Transform,float> ();
 		moveMode = GuardMovementMode.patrol;
 		UpdateGroupVisibility ();
+        needsTimer = maxNeedsTimer;
 	}
 
-	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, EnemyCollection enemyCollection, FurnitureCollection furnitureCollection, Text guardAlertnessUIOutput){
-		initialize(parentMap, initialGridPosition, initialDestination, agentScale, null, enemyCollection, furnitureCollection, guardAlertnessUIOutput);
+	public void initialize(Map parentMap, GridPosition initialGridPosition, GridPosition initialDestination, float agentScale, EnemyCollection enemyCollection, FurnitureCollection furnitureCollection, Text guardAlertnessUIOutput, Text guardRestfulnessUIOutput)
+    {
+		initialize(parentMap, initialGridPosition, initialDestination, agentScale, null, enemyCollection, furnitureCollection, guardAlertnessUIOutput, guardRestfulnessUIOutput);
 	}
 	
 	// Update is called once per frame
@@ -82,6 +87,10 @@ public class GuardController : PathfindingAgent {
             if (guardAlertnessUIOutput != null)
             {
                 guardAlertnessUIOutput.text = mostNoticedEnemyVisibility.ToString();
+            }
+            if (guardRestfulnessUIOutput != null)
+            {
+                guardRestfulnessUIOutput.text = needsTimer.ToString();
             }
             determineInitialMovementMode(mostNoticedEnemyVisibility);
 
@@ -117,36 +126,44 @@ public class GuardController : PathfindingAgent {
                     float restSpeed = targetRestFurniture.getRestfulnessValue();
                     //If we finished resting this frame
                     if (((timeLeft * restSpeed) + needsTimer) > maxNeedsTimer){
-                        needsTimer = maxNeedsTimer;
                         timeLeft = timeLeft - ((maxNeedsTimer - needsTimer) / restSpeed);
+                        needsTimer = maxNeedsTimer;
                         takeBreak = false;
                         moveMode = GuardMovementMode.patrol;
                         setRandomDestination();
                     }else{
                         //We didn't finish resting this frame, rest as hard as possible with the time left!
-                        timeLeft = 0;
                         needsTimer = needsTimer + (timeLeft * restSpeed);
+                        timeLeft = 0;
                     }
                     moveRemaining = timeLeft * agentSpeed;
 
                 }
                 else if (moveMode == GuardMovementMode.investigate)
                 {
-                    moveRemaining = performMove(mostNoticedEnemyLastPosition, moveRemaining);
-                    if (hasLineOfSight(mostNoticedEnemy))
+                    //If this is true then we no longer need to be in investigate mode
+                    if (mostNoticedEnemyVisibility < (int)GuardVisibilityThresholds.moveTowards)
                     {
-                        moveRemaining = performMove(mostNoticedEnemy.position, moveRemaining);
-
-                        if (moveRemaining > 0.001)
-                        {
-                            visibleEnemies.Remove(mostNoticedEnemy);
-                            Destroy(mostNoticedEnemy.gameObject);
-                            mostNoticedEnemy = null;
-                        }
+                        moveMode = moveModeBeforeInvestigation;
                     }
                     else
                     {
-                        performMoveForFrame(moveRemaining);
+                        moveRemaining = performMove(mostNoticedEnemyLastPosition, moveRemaining);
+                        if (hasLineOfSight(mostNoticedEnemy))
+                        {
+                            moveRemaining = performMove(mostNoticedEnemy.position, moveRemaining);
+
+                            if (moveRemaining > 0.001)
+                            {
+                                visibleEnemies.Remove(mostNoticedEnemy);
+                                Destroy(mostNoticedEnemy.gameObject);
+                                mostNoticedEnemy = null;
+                            }
+                        }
+                        else
+                        {
+                            performMoveForFrame(moveRemaining);
+                        }
                     }
                 }
             }
@@ -158,14 +175,11 @@ public class GuardController : PathfindingAgent {
     {
         if (!(moveMode == GuardMovementMode.onBreak))
         {
-            if (mostNoticedEnemyVisibility >= (int)GuardVisibilityThresholds.moveTowards)
+
+            if (moveMode != GuardMovementMode.investigate && mostNoticedEnemyVisibility >= (int)GuardVisibilityThresholds.moveTowards)
             {
+                moveModeBeforeInvestigation = moveMode;
                 moveMode = GuardMovementMode.investigate;
-            }
-            else
-            {
-                //TODO: When transitioning from investigate mode back into patrol mode the guard should pathfind back to wherever it left off on its patrol. Right now it moves in a straight line that can clip through walls
-                moveMode = GuardMovementMode.patrol;
             }
             if (moveMode == GuardMovementMode.patrol && takeBreak == true)
             {
@@ -188,7 +202,12 @@ public class GuardController : PathfindingAgent {
 
 	override protected float getAddedVisibilityValue(float currentEnemyDistance){
 		//TODO: Implement a formula for adding more visibility value to an enemy the closer they are to the guard.
-		return guardPerception * Time.deltaTime;
+        float visValue = guardPerception * Time.deltaTime;
+        if (moveMode == GuardMovementMode.onBreak || moveMode == GuardMovementMode.takeBreak)
+        {
+            visValue *= guardBreakPerceptionModifier;
+        }
+        return visValue;
 	}
 
 

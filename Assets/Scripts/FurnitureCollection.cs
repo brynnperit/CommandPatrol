@@ -7,13 +7,13 @@ public class FurnitureCollection : AgentCollection {
 
     public EnemyCollection enemyCollection;
     public GuardCollection guardCollection;
-    public RestFurnitureController furniture;
+    public RestFurnitureController restFurniture;
     public float furnitureScale;
     public float defaultRestfulnessValue;
 
     override protected void createAgent()
     {
-        RestFurnitureController newFurniture = Instantiate(furniture, Vector3.zero, Quaternion.identity) as RestFurnitureController;
+        RestFurnitureController newFurniture = Instantiate(restFurniture, Vector3.zero, Quaternion.identity) as RestFurnitureController;
         newFurniture.initialize(RestType.nap, defaultRestfulnessValue, ourMap, ourMap.reallyinefficientGetRandomMapPosition(), furnitureScale, enemyCollection, guardCollection);
         newFurniture.transform.parent = transform;
         agentList.Add(newFurniture);
