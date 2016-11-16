@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using System;
 
 public class EnemyController : PathfindingAgent {
 
@@ -46,37 +47,69 @@ public class EnemyController : PathfindingAgent {
 	// Update is called once per frame
 	new void Update () {
 		if (!paused) {
+            base.Update();
+
 			UpdateGroupVisibility ();
-			float mostNoticedEnemyVisibility = 0; 
+			float mostNoticedGuardVisibility = 0; 
 			if (mostNoticedGuard != null) {
-				mostNoticedEnemyVisibility = visibleGuards [mostNoticedGuard];
+				mostNoticedGuardVisibility = visibleGuards [mostNoticedGuard];
 			}else{
-				mostNoticedEnemyVisibility = 0;
+				mostNoticedGuardVisibility = 0;
 			}
 			if (enemyAlertnessUIOutput != null){
-				enemyAlertnessUIOutput.text = mostNoticedEnemyVisibility.ToString();
+				enemyAlertnessUIOutput.text = mostNoticedGuardVisibility.ToString();
 			}
 
-			moveMode = EnemyMovementMode.patrol;
+            determineInitialMovementMode(mostNoticedGuardVisibility);
+            
 
             float moveRemaining = agentSpeed * Time.deltaTime;
             while (moveRemaining > 0.01)
             {
-                if (moveMode == EnemyMovementMode.patrol)
+                switch (moveMode)
                 {
-                    base.Update();
-                    moveRemaining = performMoveForFrame(moveRemaining);
-                    if (moveRemaining > 0.01)
-                    {
-                        setRandomDestination();
-                    }
+                    case EnemyMovementMode.patrol:
+                        moveRemaining = patrol(moveRemaining);
+                        break;
+                    case EnemyMovementMode.evade:
+                        moveRemaining = evade(moveRemaining);
+                        break;
                 }
             }
 		}
 
 	}
 
-	void UpdateGroupVisibility(){
+    private float patrol(float moveRemaining)
+    {
+        moveRemaining = performMoveForFrame(moveRemaining);
+        if (moveRemaining > 0.01)
+        {
+            setRandomDestination();
+        }
+
+        return moveRemaining;
+    }
+
+    private float evade(float moveRemaining)
+    {
+        moveRemaining = 0;
+        //TODO: Find out how to get the actual guard game object from the transform that we have.
+        //GuardController toEvade = (GuardController)mostNoticedGuard.gameObject.;
+        return moveRemaining;
+    }
+
+    private void determineInitialMovementMode(float mostNoticedGuardVisibility)
+    {
+        if (mostNoticedGuardVisibility > (int)EnemyVisibilityThresholds.evade)
+        {
+            moveMode = EnemyMovementMode.evade;
+        } else {
+            moveMode = EnemyMovementMode.patrol;
+        }
+    }
+
+    void UpdateGroupVisibility(){
 		if (guardCollection != null) {
 			mostNoticedGuard = base.UpdateGroupVisibility (guardCollection.GetComponentsInChildren<Transform> (), transformArrayOffset, visibleGuards);
 			if (mostNoticedGuard != null){
@@ -96,19 +129,6 @@ public class EnemyController : PathfindingAgent {
 	void FixedUpdate () {
 		base.fixedUpdate ();
 		if (!paused) {
-			fireTimer -= Time.deltaTime;
-			while (fireTimer <= 0) {
-				if (mostNoticedGuard != null && visibleGuards[mostNoticedGuard] >= (int)EnemyVisibilityThresholds.shoot) {
-//					Rigidbody newBullet = Instantiate (bullet, transform.position, Quaternion.identity) as Rigidbody;
-//					Transform newBulletTransform = newBullet.GetComponent<Transform> ();
-//					newBulletTransform.LookAt (mostNoticedGuard.position);
-//					newBulletTransform.Rotate (new Vector3 (90, 0, 0));
-//					newBulletTransform.position += newBulletTransform.up * transform.localScale.x;
-//
-//					newBullet.AddForce (newBulletTransform.up * bulletSpeed, ForceMode.Impulse);
-				}
-				fireTimer += 1.0f / fireRate;
-			}
 		}
 	}
 
@@ -120,5 +140,5 @@ public class EnemyController : PathfindingAgent {
 	
 }
 
-public enum EnemyVisibilityThresholds{ stare=33, moveTowards=66, shoot=100};
-public enum EnemyMovementMode{ patrol=0, investigate=1};
+public enum EnemyVisibilityThresholds { evade = 50 };
+public enum EnemyMovementMode{ patrol=0, evade=1};
