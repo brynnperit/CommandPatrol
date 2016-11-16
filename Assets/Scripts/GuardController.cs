@@ -20,7 +20,7 @@ public class GuardController : PathfindingAgent {
     float needsTimer;
     public float maxNeedsTimer;
     public float needsThreshold;
-    bool takeBreak = false;
+    bool shouldTakeBreak = false;
 
 	public string enemyTag;
 
@@ -62,6 +62,8 @@ public class GuardController : PathfindingAgent {
 	new void Update () {
 		if (!paused)
         {
+            base.Update();
+
             //Decrease the time until the guard needs to take a break unless they are already actually resting
             if (moveMode != GuardMovementMode.onBreak)
             {
@@ -69,7 +71,7 @@ public class GuardController : PathfindingAgent {
             }
             if (needsTimer < needsThreshold)
             {
-                takeBreak = true;
+                shouldTakeBreak = true;
             }
 
             //I'm not liking how many method calls in here I'm making the are full of side effects. 
@@ -97,83 +99,106 @@ public class GuardController : PathfindingAgent {
             float moveRemaining = agentSpeed * Time.deltaTime;
             while (moveRemaining > 0.01)
             {
-                if (moveMode == GuardMovementMode.patrol)
+                switch (moveMode)
                 {
-                    base.Update();
-
-                    moveRemaining = performMoveForFrame(moveRemaining);
-                    //If the guard completes its patrol move and has movement left to do then it reached its destination
-                    //and needs a new one
-                    if (moveRemaining > 0.01)
-                    {
-                        setRandomDestination();
-                    }
-                }
-                else if (moveMode == GuardMovementMode.takeBreak)
-                {
-                    base.Update();
-
-                    moveRemaining = performMoveForFrame(moveRemaining);
-                    if (moveRemaining > 0.01)
-                    {
-                        //We're at the destination! Time to go on break
-                        moveMode = GuardMovementMode.onBreak;
-                    }
-                }
-                else if (moveMode == GuardMovementMode.onBreak)
-                {
-                    float timeLeft = moveRemaining / agentSpeed;
-                    float restSpeed = targetRestFurniture.getRestfulnessValue();
-                    //If we finished resting this frame
-                    if (((timeLeft * restSpeed) + needsTimer) > maxNeedsTimer){
-                        timeLeft = timeLeft - ((maxNeedsTimer - needsTimer) / restSpeed);
-                        needsTimer = maxNeedsTimer;
-                        takeBreak = false;
-                        moveMode = GuardMovementMode.patrol;
-                        setRandomDestination();
-                    }else{
-                        //We didn't finish resting this frame, rest as hard as possible with the time left!
-                        needsTimer = needsTimer + (timeLeft * restSpeed);
-                        timeLeft = 0;
-                    }
-                    moveRemaining = timeLeft * agentSpeed;
-
-                }
-                else if (moveMode == GuardMovementMode.investigate)
-                {
-                    //If this is true then we no longer need to be in investigate mode
-                    if (mostNoticedEnemyVisibility < (int)GuardVisibilityThresholds.moveTowards)
-                    {
-                        moveMode = moveModeBeforeInvestigation;
-                    }
-                    else
-                    {
-                        moveRemaining = performMove(mostNoticedEnemyLastPosition, moveRemaining);
-                        if (hasLineOfSight(mostNoticedEnemy))
-                        {
-                            moveRemaining = performMove(mostNoticedEnemy.position, moveRemaining);
-
-                            if (moveRemaining > 0.001)
-                            {
-                                visibleEnemies.Remove(mostNoticedEnemy);
-                                Destroy(mostNoticedEnemy.gameObject);
-                                mostNoticedEnemy = null;
-                            }
-                        }
-                        else
-                        {
-                            performMoveForFrame(moveRemaining);
-                        }
-                    }
+                    case GuardMovementMode.patrol:
+                        moveRemaining = patrol(moveRemaining);
+                        break;
+                    case GuardMovementMode.investigate:
+                        moveRemaining = investigate(mostNoticedEnemyVisibility, moveRemaining);
+                        break;
+                    case GuardMovementMode.takeBreak:
+                        moveRemaining = takeBreak(moveRemaining);
+                        break;
+                    case GuardMovementMode.onBreak:
+                        moveRemaining = onBreak(moveRemaining);
+                        break;
                 }
             }
         }
 
     }
 
+    private float onBreak(float moveRemaining)
+    {
+        float timeLeft = moveRemaining / agentSpeed;
+        float restSpeed = targetRestFurniture.getRestfulnessValue();
+        //If we finished resting this frame
+        if (((timeLeft * restSpeed) + needsTimer) > maxNeedsTimer)
+        {
+            timeLeft = timeLeft - ((maxNeedsTimer - needsTimer) / restSpeed);
+            needsTimer = maxNeedsTimer;
+            shouldTakeBreak = false;
+            moveMode = GuardMovementMode.patrol;
+            setRandomDestination();
+        }
+        else
+        {
+            //We didn't finish resting this frame, rest as hard as possible with the time left!
+            needsTimer = needsTimer + (timeLeft * restSpeed);
+            timeLeft = 0;
+        }
+        moveRemaining = timeLeft * agentSpeed;
+        return moveRemaining;
+    }
+
+    private float takeBreak(float moveRemaining)
+    {
+        moveRemaining = performMoveForFrame(moveRemaining);
+        if (moveRemaining > 0.01)
+        {
+            //We're at the destination! Time to go on break
+            moveMode = GuardMovementMode.onBreak;
+        }
+
+        return moveRemaining;
+    }
+
+    private float patrol(float moveRemaining)
+    {
+        moveRemaining = performMoveForFrame(moveRemaining);
+        //If the guard completes its patrol move and has movement left to do then it reached its destination
+        //and needs a new one
+        if (moveRemaining > 0.01)
+        {
+            setRandomDestination();
+        }
+
+        return moveRemaining;
+    }
+
+    private float investigate(float mostNoticedEnemyVisibility, float moveRemaining)
+    {
+        //If this is true then we no longer need to be in investigate mode
+        if (mostNoticedEnemy == null || mostNoticedEnemyVisibility < (int)GuardVisibilityThresholds.moveTowards)
+        {
+            moveMode = moveModeBeforeInvestigation;
+        }
+        else
+        {
+            if (hasLineOfSight(mostNoticedEnemy))
+            {
+                moveRemaining = performMove(mostNoticedEnemy.position, moveRemaining);
+
+                if (moveRemaining > 0.001)
+                {
+                    visibleEnemies.Remove(mostNoticedEnemy);
+                    Destroy(mostNoticedEnemy.gameObject);
+                    mostNoticedEnemy = null;
+                }
+            }
+            else
+            {
+                moveRemaining = performMove(mostNoticedEnemyLastPosition, moveRemaining);
+            }
+        }
+
+        return moveRemaining;
+    }
+
     private void determineInitialMovementMode(float mostNoticedEnemyVisibility)
     {
-        if (!(moveMode == GuardMovementMode.onBreak))
+        if (moveMode != GuardMovementMode.onBreak)
         {
 
             if (moveMode != GuardMovementMode.investigate && mostNoticedEnemyVisibility >= (int)GuardVisibilityThresholds.moveTowards)
@@ -181,7 +206,7 @@ public class GuardController : PathfindingAgent {
                 moveModeBeforeInvestigation = moveMode;
                 moveMode = GuardMovementMode.investigate;
             }
-            if (moveMode == GuardMovementMode.patrol && takeBreak == true)
+            if (moveMode == GuardMovementMode.patrol && shouldTakeBreak == true)
             {
                 moveMode = GuardMovementMode.takeBreak;
                 //Path to all furniture objects, determine the path length of the closest one, and then path to it

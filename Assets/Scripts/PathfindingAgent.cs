@@ -44,6 +44,8 @@ public abstract class PathfindingAgent : Agent {
     /// <param name="destinationToSet">The agent's new destination</param>
     /// <returns>False if the agent is already at the provided position, true otherwise</returns>
 	public bool setDestination(IMapPosition destinationToSet){
+        //This cleans up the old path end marker if there is one
+        removeEndMarker();
 		if (destinationToSet.xPosition == ourPosition.xPosition && destinationToSet.zPosition == ourPosition.zPosition) {
             return false;
 		} else {
@@ -83,13 +85,20 @@ public abstract class PathfindingAgent : Agent {
 			currentPathNode = subgridPath.Length - 1;
 
 		} else {
-			//If we hit this point then we're in the final grid square and have hit subgridPath[subgridPath.Length - 1], which is the end marker as seen just above
-			GameObject oldEndMarker = endMarker;
-			Destroy (oldEndMarker);
+            //If we hit this point then we're in the final grid square and have hit subgridPath[subgridPath.Length - 1], which is the end marker as seen just above
+            removeEndMarker();
             hasNextStep = false;
-		}
+        }
         return hasNextStep;
 	}
+
+    protected void removeEndMarker()
+    {
+        if (endMarker != null) {
+            GameObject oldEndMarker = endMarker;
+            Destroy(oldEndMarker);
+        }
+    }
 
     // Update is called once per frame
     //TODO: Move this into fixedUpdate, either make motion entirely physics and acceleration based or for now just calculate the velocity in each frame and hand that to the physics
