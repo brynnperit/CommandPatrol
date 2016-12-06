@@ -13,7 +13,9 @@ public abstract class PathfindingAgent : Agent {
 
 	public float agentSpeed;
 
-	public Transform pathEndMarker;
+    public Transform pathEndMarker;
+
+    public VisibilityAngle[] visionCones;
 
 	GameObject endMarker;
 

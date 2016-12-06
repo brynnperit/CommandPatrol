@@ -8,12 +8,11 @@ public class EnemyController : PathfindingAgent {
 
 	GuardCollection guardCollection;
     FurnitureCollection furnitureCollection;
-	int transformArrayOffset = 1;
 	public float fireRate;
 	float fireTimer = 0;
 	public Rigidbody bullet;
 	public float bulletSpeed;
-	Transform mostNoticedGuard;
+    GuardController mostNoticedGuard;
 	Vector3 mostNoticedGuardLastPosition;
 	public Transform pathfindingNodeCollection;
 
@@ -24,7 +23,7 @@ public class EnemyController : PathfindingAgent {
 
 	public float enemyPerception;
 
-	Dictionary<Transform,float> visibleGuards;
+	Dictionary<Agent,float> visibleGuards;
 
 	// Use this for initialization
 	void Start () {
@@ -35,7 +34,7 @@ public class EnemyController : PathfindingAgent {
 		base.initialize (parentMap, initialGridPosition, initialDestination, agentScale, enclosingCollection);
 		this.guardCollection = guardCollection;
         this.furnitureCollection = furnitureCollection;
-		visibleGuards = new Dictionary<Transform,float> ();
+		visibleGuards = new Dictionary<Agent, float> ();
 		moveMode = EnemyMovementMode.patrol;
 		UpdateGroupVisibility ();
 	}
@@ -112,22 +111,25 @@ public class EnemyController : PathfindingAgent {
 
     void UpdateGroupVisibility(){
 		if (guardCollection != null) {
-			mostNoticedGuard = Visibility.UpdateGroupVisibility (transform, guardCollection.GetComponentsInChildren<Transform> (), transformArrayOffset, visibleGuards, getAddedVisibilityValue, visibilityFadeSpeed, maxVisibilityDistance);
+			mostNoticedGuard = (GuardController) Visibility.UpdateGroupVisibility (this, guardCollection.getAgentList(), visibleGuards, getAddedVisibilityValue, visibilityFadeSpeed, maxVisibilityDistance);
 			if (mostNoticedGuard != null){
-				mostNoticedGuardLastPosition = mostNoticedGuard.position;
+				mostNoticedGuardLastPosition = mostNoticedGuard.transform.position;
 			}
 		}
 	}
 
-	override protected float getAddedVisibilityValue(float currentEnemyDistance){
-		//TODO: Implement a formula for adding more visibility value to an enemy the closer they are to the guard.
-		return enemyPerception * Time.deltaTime;
+	override public float getAddedVisibilityValue(Agent viewingAgent)
+    {
+        return 0;
 	}
 
+    public override float getPerception()
+    {
+        return enemyPerception;
+    }
 
-	
-	//TODO: Make the enemies have their own alert meters for the guards, where upon seeing a guard they will move to break line of sight as quickly as possible.
-	void FixedUpdate () {
+    //TODO: Make the enemies have their own alert meters for the guards, where upon seeing a guard they will move to break line of sight as quickly as possible.
+    void FixedUpdate () {
 		base.fixedUpdate ();
 		if (!paused) {
 		}
@@ -138,7 +140,6 @@ public class EnemyController : PathfindingAgent {
 //			Destroy (other.gameObject);
 //		}
 	}
-	
 }
 
 public enum EnemyVisibilityThresholds { evade = 50 };

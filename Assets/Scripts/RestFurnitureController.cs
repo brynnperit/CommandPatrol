@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class RestFurnitureController : FurnitureController {
 
@@ -20,6 +21,17 @@ public class RestFurnitureController : FurnitureController {
     public float getRestfulnessValue()
     {
         return restfulnessValue;
+    }
+
+    override public float getAddedVisibilityValue(Agent viewingAgent)
+    {
+        return 0;
+    }
+
+    //It's a couch or a mattress or something. Given that it's not from Sqornshellous Zeta it's reasonable to say it can't see anything.
+    public override float getPerception()
+    {
+        return 0;
     }
 }
 

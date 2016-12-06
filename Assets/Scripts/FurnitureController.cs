@@ -21,11 +21,6 @@ public abstract class FurnitureController : Agent {
         initialize(ourFurnitureType, parentMap, initialGridPosition, agentScale, null, enemyCollection, guardCollection);
     }
 
-    protected override float getAddedVisibilityValue(float otherAgentDistance)
-    {
-        throw new NotImplementedException();
-    }
-
     public FurnitureType getFurnitureType()
     {
         return ourFurnitureType;

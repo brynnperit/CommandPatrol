@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
 public class GuardController : PathfindingAgent {
 
@@ -13,7 +14,7 @@ public class GuardController : PathfindingAgent {
 	float fireTimer = 0;
 	public Rigidbody bullet;
 	public float bulletSpeed;
-	Transform mostNoticedEnemy;
+	Agent mostNoticedEnemy;
 	Vector3 mostNoticedEnemyLastPosition;
 	public Transform pathfindingNodeCollection;
     protected RestFurnitureController targetRestFurniture;
@@ -34,7 +35,7 @@ public class GuardController : PathfindingAgent {
 	public float guardPerception;
     public float guardBreakPerceptionModifier;
 
-	Dictionary<Transform,float> visibleEnemies;
+	Dictionary<Agent,float> visibleEnemies;
 
 	// Use this for initialization
 	void Start () {
@@ -48,7 +49,7 @@ public class GuardController : PathfindingAgent {
         this.furnitureCollection = furnitureCollection;
 		this.guardAlertnessUIOutput = guardAlertnessUIOutput;
         this.guardRestfulnessUIOutput = guardRestfulnessUIOutput;
-		visibleEnemies = new Dictionary<Transform,float> ();
+		visibleEnemies = new Dictionary<Agent,float> ();
 		moveMode = GuardMovementMode.patrol;
 		UpdateGroupVisibility ();
         needsTimer = maxNeedsTimer;
@@ -177,9 +178,9 @@ public class GuardController : PathfindingAgent {
         }
         else
         {
-            if (Visibility.hasLineOfSight(transform, mostNoticedEnemy, maxVisibilityDistance))
+            if (Visibility.HasLineOfSight(transform, mostNoticedEnemy.transform, maxVisibilityDistance))
             {
-                moveRemaining = performMove(mostNoticedEnemy.position, moveRemaining);
+                moveRemaining = performMove(mostNoticedEnemy.transform.position, moveRemaining);
 
                 if (moveRemaining > 0.001)
                 {
@@ -220,15 +221,21 @@ public class GuardController : PathfindingAgent {
     void UpdateGroupVisibility(){
 		if (enemyCollection != null) {
             //TODO: Perform culling here of which enemies to send in to the visibility check.
-			mostNoticedEnemy = Visibility.UpdateGroupVisibility (transform, enemyCollection.GetComponentsInChildren<Transform> (), transformArrayOffset, visibleEnemies, getAddedVisibilityValue, visibilityFadeSpeed, maxVisibilityDistance);
+			mostNoticedEnemy = Visibility.UpdateGroupVisibility (this, enemyCollection.getAgentList(), visibleEnemies, getAddedVisibilityValue, visibilityFadeSpeed, maxVisibilityDistance);
 			if (mostNoticedEnemy != null) {
-				mostNoticedEnemyLastPosition = mostNoticedEnemy.position;
+				mostNoticedEnemyLastPosition = mostNoticedEnemy.transform.position;
 			}
 		}
 	}
 
-	override protected float getAddedVisibilityValue(float currentEnemyDistance){
-		//TODO: Implement a formula for adding more visibility value to an enemy the closer they are to the guard.
+	override public float getAddedVisibilityValue(Agent otherAgent){
+
+        Vector3 otherAgentDirection = otherAgent.transform.position - transform.position;
+        float angleBetween = Vector3.Angle(otherAgentDirection, transform.forward);
+
+        VisibilityAngle toUse = Visibility.DetermineVisibilityAngleToUse(visionCones, angleBetween);
+
+        //TODO: Implement a formula for adding more visibility value to an enemy the closer they are to the guard.
         float visValue = guardPerception * Time.deltaTime;
         if (moveMode == GuardMovementMode.onBreak || moveMode == GuardMovementMode.takeBreak)
         {
@@ -237,10 +244,20 @@ public class GuardController : PathfindingAgent {
         return visValue;
 	}
 
+    public override float getPerception()
+    {
+        float perception = guardPerception;
+        if (moveMode == GuardMovementMode.onBreak || moveMode == GuardMovementMode.takeBreak)
+        {
+            perception *= guardBreakPerceptionModifier;
+        }
+        return perception;
+    }
 
-	
-	//TODO: Make the enemies have their own alert meters for the guards, where upon seeing a guard they will move to break line of sight as quickly as possible.
-	void FixedUpdate () {
+
+
+    //TODO: Make the enemies have their own alert meters for the guards, where upon seeing a guard they will move to break line of sight as quickly as possible.
+    void FixedUpdate () {
 		base.fixedUpdate ();
 		if (!paused) {
 			fireTimer -= Time.deltaTime;
@@ -248,7 +265,7 @@ public class GuardController : PathfindingAgent {
 				if (mostNoticedEnemy != null && visibleEnemies[mostNoticedEnemy] >= (int)GuardVisibilityThresholds.shoot) {
 					Rigidbody newBullet = Instantiate (bullet, transform.position, Quaternion.identity) as Rigidbody;
 					Transform newBulletTransform = newBullet.GetComponent<Transform> ();
-					newBulletTransform.LookAt (mostNoticedEnemy.position);
+					newBulletTransform.LookAt (mostNoticedEnemy.transform.position);
 					newBulletTransform.Rotate (new Vector3 (90, 0, 0));
 					newBulletTransform.position += newBulletTransform.up * transform.localScale.x;
 

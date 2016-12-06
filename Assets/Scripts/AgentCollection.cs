@@ -30,6 +30,11 @@ public abstract class AgentCollection : MonoBehaviour {
 			}
 		}
 	}
+
+    public List<Agent> getAgentList()
+    {
+        return agentList;
+    }
 	
 	// Update is called once per frame
 	void Update () {

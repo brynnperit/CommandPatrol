@@ -4,7 +4,21 @@ using System.Collections.Generic;
 using System;
 
 public static class Visibility  {
-    public static bool hasLineOfSight(Transform start, Transform end, float maxVisibilityDistance)
+    public static VisibilityAngle DetermineVisibilityAngleToUse(VisibilityAngle[] angleSet, float angle)
+    {
+        VisibilityAngle toReturn = new VisibilityAngle(0,180,0);
+        foreach(VisibilityAngle currentAngle in angleSet)
+        {
+            if (currentAngle.minAngle < angle && currentAngle.maxAngle > angle)
+            {
+                toReturn = currentAngle;
+                break;
+            }
+        }
+        return toReturn;
+    }
+
+    public static bool HasLineOfSight(Transform start, Transform end, float maxVisibilityDistance)
     {
         if (start != null && end != null)
         {
@@ -28,30 +42,26 @@ public static class Visibility  {
         return false;
     }
 
-    public static Transform UpdateGroupVisibility(Transform initialPosition, Transform[] toCheck, int checkOffset, Dictionary<Transform, float> visibilityList, Func<float, float> getAddedVisibilityValue, float visibilityFadeSpeed, float maxVisibilityDistance)
+    public static Agent UpdateGroupVisibility(Agent toCheckFrom, List<Agent> toCheck, Dictionary<Agent, float> visibilityList, Func<Agent, float> getAddedVisibilityValue, float visibilityFadeSpeed, float maxVisibilityDistance)
     {
-        if (toCheck.Length > checkOffset)
+        foreach (Agent currentAgent in toCheck)
         {
-            for (int currentTransformNum = checkOffset; currentTransformNum < toCheck.Length; currentTransformNum++)
+            if (HasLineOfSight(toCheckFrom.transform, currentAgent.transform, maxVisibilityDistance))
             {
-                Transform currentTransform = toCheck[currentTransformNum];
-                if (hasLineOfSight(initialPosition, currentTransform, maxVisibilityDistance))
+                float currentTransformDistance = Vector3.Distance(toCheckFrom.transform.position, currentAgent.transform.position);
+                if (!visibilityList.ContainsKey(currentAgent))
                 {
-                    float currentTransformDistance = Vector3.Distance(initialPosition.position, currentTransform.position);
-                    if (!visibilityList.ContainsKey(currentTransform))
-                    {
-                        visibilityList.Add(currentTransform, 0);
-                    }
-                    //The addition of (visibilityFadeSpeed * Time.deltaTime) is done so that objects that are currently in view don't have their visibility fade away
-                    //TODO: Change this around so that objects can be more or less visible to guards, enemies, etc.
-                    visibilityList[currentTransform] += getAddedVisibilityValue(currentTransformDistance) + (visibilityFadeSpeed * Time.deltaTime);
+                    visibilityList.Add(currentAgent, 0);
                 }
+                //The addition of (visibilityFadeSpeed * Time.deltaTime) is done so that objects that are currently in view don't have their visibility fade away
+                //TODO: Change this around so that objects can be more or less visible to guards, enemies, etc.
+                visibilityList[currentAgent] += (toCheckFrom.getAddedVisibilityValue(currentAgent) * toCheckFrom.getPerception()) + (visibilityFadeSpeed * Time.deltaTime);
             }
         }
         //Decrementing the visibility values of all enemies prevents memory leaks, since references to removed enemies will shortly disappear from here.
-        List<Transform> visibleTransformList = new List<Transform>(visibilityList.Keys);
-        Transform mostNoticedTransform = null;
-        foreach (Transform visible in visibleTransformList)
+        List<Agent> visibleAgentList = new List<Agent>(visibilityList.Keys);
+        Agent mostNoticedAgent = null;
+        foreach (Agent visible in visibleAgentList)
         {
             if (visible != null)
             {
@@ -60,9 +70,9 @@ public static class Visibility  {
                 {
                     visibilityList.Remove(visible);
                 }
-                else if (mostNoticedTransform == null || visibilityList[visible] > visibilityList[mostNoticedTransform])
+                else if (mostNoticedAgent == null || visibilityList[visible] > visibilityList[mostNoticedAgent])
                 {
-                    mostNoticedTransform = visible;
+                    mostNoticedAgent = visible;
                 }
 
             }
@@ -72,6 +82,20 @@ public static class Visibility  {
             }
         }
 
-        return mostNoticedTransform;
+        return mostNoticedAgent;
+    }
+}
+
+public struct VisibilityAngle
+{
+    public float minAngle;
+    public float maxAngle;
+    public float Distance;
+
+    public VisibilityAngle (float minAngle, float maxAngle, float Distance)
+    {
+        this.minAngle = minAngle;
+        this.maxAngle = maxAngle;
+        this.Distance = Distance;
     }
 }

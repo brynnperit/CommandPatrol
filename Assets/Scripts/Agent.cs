@@ -65,8 +65,10 @@ public abstract class Agent : MonoBehaviour
         paused = false;
     }
 
-    //This currently is used to define how well an agent can see. It should be changed, along with changes in Visibility.cs, to define how well an agent can be seen.
-    abstract protected float getAddedVisibilityValue(float otherAgentDistance);
+    //This is used by agents that are looking at this agent to determine how well this agent can be seen.
+    abstract public float getAddedVisibilityValue(Agent viewingAgent);
+
+    abstract public float getPerception();
 
     // Update is called once per frame
     protected void Update()
