@@ -91,6 +91,7 @@ public class EnemyController : PathfindingAgent {
         return moveRemaining;
     }
 
+    //
     private float evade(float moveRemaining)
     {
         moveRemaining = 0;
@@ -111,7 +112,7 @@ public class EnemyController : PathfindingAgent {
 
     void UpdateGroupVisibility(){
 		if (guardCollection != null) {
-			mostNoticedGuard = base.UpdateGroupVisibility (guardCollection.GetComponentsInChildren<Transform> (), transformArrayOffset, visibleGuards);
+			mostNoticedGuard = Visibility.UpdateGroupVisibility (transform, guardCollection.GetComponentsInChildren<Transform> (), transformArrayOffset, visibleGuards, getAddedVisibilityValue, visibilityFadeSpeed, maxVisibilityDistance);
 			if (mostNoticedGuard != null){
 				mostNoticedGuardLastPosition = mostNoticedGuard.position;
 			}

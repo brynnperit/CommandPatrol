@@ -7,6 +7,7 @@ public class GuardController : PathfindingAgent {
 
 	EnemyCollection enemyCollection;
     FurnitureCollection furnitureCollection;
+    //TODO: Find out what this actually does and document it
 	int transformArrayOffset = 1;
 	public float fireRate;
 	float fireTimer = 0;
@@ -176,7 +177,7 @@ public class GuardController : PathfindingAgent {
         }
         else
         {
-            if (hasLineOfSight(mostNoticedEnemy))
+            if (Visibility.hasLineOfSight(transform, mostNoticedEnemy, maxVisibilityDistance))
             {
                 moveRemaining = performMove(mostNoticedEnemy.position, moveRemaining);
 
@@ -218,7 +219,8 @@ public class GuardController : PathfindingAgent {
 
     void UpdateGroupVisibility(){
 		if (enemyCollection != null) {
-			mostNoticedEnemy = base.UpdateGroupVisibility (enemyCollection.GetComponentsInChildren<Transform> (), transformArrayOffset, visibleEnemies);
+            //TODO: Perform culling here of which enemies to send in to the visibility check.
+			mostNoticedEnemy = Visibility.UpdateGroupVisibility (transform, enemyCollection.GetComponentsInChildren<Transform> (), transformArrayOffset, visibleEnemies, getAddedVisibilityValue, visibilityFadeSpeed, maxVisibilityDistance);
 			if (mostNoticedEnemy != null) {
 				mostNoticedEnemyLastPosition = mostNoticedEnemy.position;
 			}

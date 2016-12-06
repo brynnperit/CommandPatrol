@@ -11,6 +11,7 @@ public abstract class Agent : MonoBehaviour
     protected AgentCollection enclosingCollection;
 
     public float visibilityFadeSpeed;
+    public float maxVisibilityDistance;
 
     protected float agentScale;
 
@@ -64,86 +65,10 @@ public abstract class Agent : MonoBehaviour
         paused = false;
     }
 
+    //This currently is used to define how well an agent can see. It should be changed, along with changes in Visibility.cs, to define how well an agent can be seen.
     abstract protected float getAddedVisibilityValue(float otherAgentDistance);
 
-    protected bool hasLineOfSight(Transform toCheck)
-    {
-        if (toCheck != null)
-        {
-            Vector3 rayDirection = toCheck.position - transform.position;
-            RaycastHit hitResult = new RaycastHit();
-            //TODO: Limit this check to rays within a number of degrees in a cone around the forward axis of the guard, representing the guard's vision
-            if (Physics.Raycast(transform.position, rayDirection, out hitResult))
-            {
-
-                if (hitResult.transform == toCheck)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    protected Transform UpdateGroupVisibility(Transform[] toCheck, int checkOffset, Dictionary<Transform, float> visibilityList)
-    {
-        if (toCheck.Length > checkOffset)
-        {
-            for (int currentTransformNum = checkOffset; currentTransformNum < toCheck.Length; currentTransformNum++)
-            {
-                Transform currentTransform = toCheck[currentTransformNum];
-                if (hasLineOfSight(currentTransform))
-                {
-                    float currentTransformDistance = Vector3.Distance(transform.position, currentTransform.position);
-                    if (!visibilityList.ContainsKey(currentTransform))
-                    {
-                        visibilityList.Add(currentTransform, 0);
-                    }
-                    visibilityList[currentTransform] += getAddedVisibilityValue(currentTransformDistance) + (visibilityFadeSpeed * Time.deltaTime);
-                }
-            }
-        }
-        //Decrementing the visibility values of all enemies prevents memory leaks, since references to removed enemies will shortly disappear from here.
-        List<Transform> visibleTransformList = new List<Transform>(visibilityList.Keys);
-        Transform mostNoticedTransform = null;
-        foreach (Transform visible in visibleTransformList)
-        {
-            if (visible != null)
-            {
-                visibilityList[visible] -= (visibilityFadeSpeed * Time.deltaTime);
-                if (visibilityList[visible] < 0)
-                {
-                    visibilityList.Remove(visible);
-                }
-                else if (mostNoticedTransform == null || visibilityList[visible] > visibilityList[mostNoticedTransform])
-                {
-                    mostNoticedTransform = visible;
-                }
-
-            }
-            else
-            {
-                visibilityList.Remove(visible);
-            }
-        }
-
-        return mostNoticedTransform;
-    }
-
     // Update is called once per frame
-    //TODO: Move this into fixedUpdate, either make motion entirely physics and acceleration based or for now just calculate the velocity in each frame and hand that to the physics
     protected void Update()
     {
     }
