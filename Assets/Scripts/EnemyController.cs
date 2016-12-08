@@ -120,8 +120,25 @@ public class EnemyController : PathfindingAgent {
 
 	override public float getAddedVisibilityValue(Agent viewingAgent)
     {
-        return 0;
-	}
+        Vector3 directionFromGuardToThis = transform.position - viewingAgent.transform.position;
+        float angleBetween = Vector3.Angle(viewingAgent.transform.forward, directionFromGuardToThis);
+
+        VisibilityCone toUse = Visibility.DetermineVisibilityConeToUse(viewingAgent.getVisionCones(), angleBetween);
+        float maxRange = toUse.Distance;
+
+        float addedValue = 0;
+        if (directionFromGuardToThis.magnitude > maxRange)
+        {
+            addedValue = 0;
+        }else if (directionFromGuardToThis.magnitude > (maxRange / 2.0))
+        {
+            addedValue = (float)(baseVisibilityPerSecond / 2.0);
+        }else
+        {
+            addedValue = baseVisibilityPerSecond;
+        }
+        return addedValue;
+    }
 
     public override float getPerception()
     {

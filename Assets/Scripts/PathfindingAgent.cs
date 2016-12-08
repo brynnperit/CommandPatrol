@@ -15,7 +15,7 @@ public abstract class PathfindingAgent : Agent {
 
     public Transform pathEndMarker;
 
-    public VisibilityAngle[] visionCones;
+    public VisibilityCone[] visionCones;
 
 	GameObject endMarker;
 

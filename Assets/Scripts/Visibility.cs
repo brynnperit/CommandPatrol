@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System;
 
 public static class Visibility  {
-    public static VisibilityAngle DetermineVisibilityAngleToUse(VisibilityAngle[] angleSet, float angle)
+    public static VisibilityCone DetermineVisibilityConeToUse(VisibilityCone[] coneSet, float angle)
     {
-        VisibilityAngle toReturn = new VisibilityAngle(0,180,0);
-        foreach(VisibilityAngle currentAngle in angleSet)
+        VisibilityCone toReturn = new VisibilityCone(0,180,0);
+        foreach(VisibilityCone currentAngle in coneSet)
         {
             if (currentAngle.minAngle < angle && currentAngle.maxAngle > angle)
             {
@@ -53,9 +53,9 @@ public static class Visibility  {
                 {
                     visibilityList.Add(currentAgent, 0);
                 }
-                //The addition of (visibilityFadeSpeed * Time.deltaTime) is done so that objects that are currently in view don't have their visibility fade away
+                //The addition of (visibilityFadeSpeed * Time.deltaTime) is done so that objects that are currently within line of sight don't have their visibility fade away
                 //TODO: Change this around so that objects can be more or less visible to guards, enemies, etc.
-                visibilityList[currentAgent] += (toCheckFrom.getAddedVisibilityValue(currentAgent) * toCheckFrom.getPerception()) + (visibilityFadeSpeed * Time.deltaTime);
+                visibilityList[currentAgent] += (currentAgent.getAddedVisibilityValue(toCheckFrom) * toCheckFrom.getPerception()) + (visibilityFadeSpeed * Time.deltaTime);
             }
         }
         //Decrementing the visibility values of all enemies prevents memory leaks, since references to removed enemies will shortly disappear from here.
@@ -86,13 +86,13 @@ public static class Visibility  {
     }
 }
 
-public struct VisibilityAngle
+public struct VisibilityCone
 {
     public float minAngle;
     public float maxAngle;
     public float Distance;
 
-    public VisibilityAngle (float minAngle, float maxAngle, float Distance)
+    public VisibilityCone (float minAngle, float maxAngle, float Distance)
     {
         this.minAngle = minAngle;
         this.maxAngle = maxAngle;

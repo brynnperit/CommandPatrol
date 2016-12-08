@@ -8,8 +8,7 @@ public class GuardController : PathfindingAgent {
 
 	EnemyCollection enemyCollection;
     FurnitureCollection furnitureCollection;
-    //TODO: Find out what this actually does and document it
-	int transformArrayOffset = 1;
+
 	public float fireRate;
 	float fireTimer = 0;
 	public Rigidbody bullet;
@@ -229,18 +228,7 @@ public class GuardController : PathfindingAgent {
 	}
 
 	override public float getAddedVisibilityValue(Agent otherAgent){
-
-        Vector3 otherAgentDirection = otherAgent.transform.position - transform.position;
-        float angleBetween = Vector3.Angle(otherAgentDirection, transform.forward);
-
-        VisibilityAngle toUse = Visibility.DetermineVisibilityAngleToUse(visionCones, angleBetween);
-
-        //TODO: Implement a formula for adding more visibility value to an enemy the closer they are to the guard.
-        float visValue = guardPerception * Time.deltaTime;
-        if (moveMode == GuardMovementMode.onBreak || moveMode == GuardMovementMode.takeBreak)
-        {
-            visValue *= guardBreakPerceptionModifier;
-        }
+        float visValue = Time.deltaTime * baseVisibilityPerSecond;
         return visValue;
 	}
 

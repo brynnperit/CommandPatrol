@@ -4,10 +4,8 @@ using System;
 
 public abstract class FurnitureController : Agent {
 
-    FurnitureType ourFurnitureType;
-
-    EnemyCollection enemyCollection;
-    GuardCollection guardCollection;
+    protected EnemyCollection enemyCollection;
+    protected GuardCollection guardCollection;
 
     protected void initialize(FurnitureType ourFurnitureType, Map parentMap, GridPosition initialGridPosition, float agentScale, FurnitureCollection enclosingCollection, EnemyCollection enemyCollection, GuardCollection guardCollection)
     {
@@ -21,10 +19,7 @@ public abstract class FurnitureController : Agent {
         initialize(ourFurnitureType, parentMap, initialGridPosition, agentScale, null, enemyCollection, guardCollection);
     }
 
-    public FurnitureType getFurnitureType()
-    {
-        return ourFurnitureType;
-    }
+    abstract public FurnitureType getFurnitureType();
 }
 
 public enum FurnitureType { rest=0 };

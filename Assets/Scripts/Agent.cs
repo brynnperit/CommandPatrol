@@ -13,6 +13,10 @@ public abstract class Agent : MonoBehaviour
     public float visibilityFadeSpeed;
     public float maxVisibilityDistance;
 
+    public float baseVisibilityPerSecond = 10;
+
+    protected VisibilityCone[] visionCones;
+
     protected float agentScale;
 
     protected bool paused;
@@ -69,6 +73,11 @@ public abstract class Agent : MonoBehaviour
     abstract public float getAddedVisibilityValue(Agent viewingAgent);
 
     abstract public float getPerception();
+
+    public VisibilityCone[] getVisionCones()
+    {
+        return visionCones;
+    }
 
     // Update is called once per frame
     protected void Update()

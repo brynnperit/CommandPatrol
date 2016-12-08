@@ -25,13 +25,18 @@ public class RestFurnitureController : FurnitureController {
 
     override public float getAddedVisibilityValue(Agent viewingAgent)
     {
-        return 0;
+        return baseVisibilityPerSecond * 5;
     }
 
     //It's a couch or a mattress or something. Given that it's not from Sqornshellous Zeta it's reasonable to say it can't see anything.
-    public override float getPerception()
+    override public float getPerception()
     {
         return 0;
+    }
+
+    public override FurnitureType getFurnitureType()
+    {
+        return FurnitureType.rest;
     }
 }
 
